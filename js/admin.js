@@ -16,13 +16,21 @@ const RESET_KEY = 'bloomshine_reset_codes';
 const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 const RESET_CODE_EXPIRY = 30 * 60 * 1000; // 30 minutes
 
+// ---- CONFIGURE BEFORE DEPLOYMENT ----
+// Set these values before deploying. Do not commit real values to a public repo.
+const ADMIN_CONFIG = {
+  defaultPassword: 'changeme',                 // New users get this; forced to change on first login
+  developerEmail: 'developer@example.com',      // Protected dev account email
+  developerName: 'Developer',                   // Dev account display name
+  ownerEmail: 'owner@example.com',              // Business owner account email
+  ownerName: 'Owner'                            // Owner account display name
+};
+// ---- END CONFIGURATION ----
+
 // Roles — developer is protected, owner has full business access, staff is future
 const ROLE_DEVELOPER = 'developer';
 const ROLE_OWNER = 'owner';
 const ROLE_STAFF = 'staff'; // Stubbed for future employees
-
-// Developer account email — cannot be removed or modified by non-developers
-const DEVELOPER_EMAIL = 'josho@groundwire.net';
 
 // Current session user
 let currentUser = null;
@@ -85,31 +93,23 @@ function updateUser(email, updates) {
 async function seedDefaultUsers() {
   const existing = getUsers();
 
-  // Migrate old owner email if present
-  if (existing && existing.length > 0) {
-    const oldOwner = existing.find(u => u.email.toLowerCase() === 'hunger4jesus08@yahoo.com');
-    if (oldOwner) {
-      oldOwner.email = 'nickib.bloomandshine@gmail.com';
-      saveUsers(existing);
-    }
-    return;
-  }
+  if (existing && existing.length > 0) return;
 
-  const defaultHash = await sha256('bloom2026');
+  const defaultHash = await sha256(ADMIN_CONFIG.defaultPassword);
 
   const defaultUsers = [
     {
-      email: 'josho@groundwire.net',
-      name: 'Josh Ondo',
+      email: ADMIN_CONFIG.developerEmail,
+      name: ADMIN_CONFIG.developerName,
       role: ROLE_DEVELOPER,
       passwordHash: defaultHash,
       mustChangePassword: true,
-      protected: true, // Cannot be removed or role-changed by non-developers
+      protected: true,
       createdAt: new Date().toISOString()
     },
     {
-      email: 'nickib.bloomandshine@gmail.com',
-      name: 'Nicki Burnett',
+      email: ADMIN_CONFIG.ownerEmail,
+      name: ADMIN_CONFIG.ownerName,
       role: ROLE_OWNER,
       passwordHash: defaultHash,
       mustChangePassword: true,
@@ -243,7 +243,7 @@ async function submitForceChange(e) {
 
   // Ensure new password differs from default
   const newHash = await sha256(newPass);
-  const defaultHash = await sha256('bloom2026');
+  const defaultHash = await sha256(ADMIN_CONFIG.defaultPassword);
   if (newHash === defaultHash) {
     status.textContent = 'Please choose a different password than the default.';
     status.style.color = 'var(--color-rose)';
@@ -561,7 +561,7 @@ async function addNewUser(e) {
     return;
   }
 
-  const defaultHash = await sha256('bloom2026');
+  const defaultHash = await sha256(ADMIN_CONFIG.defaultPassword);
   const users = getUsers() || [];
   users.push({
     email,
@@ -573,7 +573,7 @@ async function addNewUser(e) {
   });
   saveUsers(users);
 
-  status.textContent = `User added. Default password: bloom2026`;
+  status.textContent = 'User added. They will be prompted to set a password on first login.';
   status.style.color = 'var(--color-teal)';
 
   document.getElementById('new-user-name').value = '';
@@ -582,9 +582,9 @@ async function addNewUser(e) {
 }
 
 async function resetUserPassword(email) {
-  if (!confirm(`Reset password for ${email} to the default (bloom2026)?`)) return;
+  if (!confirm(`Reset password for ${email}? They will be prompted to set a new one on next login.`)) return;
 
-  const defaultHash = await sha256('bloom2026');
+  const defaultHash = await sha256(ADMIN_CONFIG.defaultPassword);
   updateUser(email, {
     passwordHash: defaultHash,
     mustChangePassword: true

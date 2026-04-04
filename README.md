@@ -69,8 +69,9 @@ The script auto-builds the entire CRM when you run `setup()`:
 1. Create a **blank** Google Sheet (no tabs or headers needed)
 2. Go to **Extensions → Apps Script**
 3. Delete the default code, paste the contents of `google-apps-script/Code.gs`
-4. In the toolbar, select `setup` from the function dropdown and click **Run**
-5. Authorize when prompted — the script will:
+4. **Configure:** Set `notificationEmail` and `devEmail` in the `CONFIG` block at the top
+5. In the toolbar, select `setup` from the function dropdown and click **Run**
+6. Authorize when prompted — the script will:
    - Rename the spreadsheet
    - Create 6 tabs: Dashboard, Contacts, Estimates, Contracts, Invoices, Activity Log
    - Format all headers, column widths, dropdowns, and conditional formatting
@@ -91,7 +92,7 @@ The admin portal is at `admin.html` (linked in the site footer).
 - `owner` — Full business access including user management
 - `staff` — Future employee access (stubbed)
 
-**First login:** Use the default password. You will be prompted to change it immediately.
+**First login:** Configure `ADMIN_CONFIG` in `js/admin.js` with account emails and a temporary default password before deploying. All users are forced to change their password on first login.
 
 **Features:**
 - Overview with live stats from Google Sheets

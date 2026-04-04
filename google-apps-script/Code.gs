@@ -18,10 +18,12 @@
 // CONFIGURATION
 // ============================================
 
+// ---- CONFIGURE BEFORE DEPLOYMENT ----
+// Set notificationEmail and devEmail before running setup().
 const CONFIG = {
   sheetName: 'Bloom & Shine — CRM',
-  notificationEmail: 'nickib.bloomandshine@gmail.com',
-  devEmail: 'josho@groundwire.net',
+  notificationEmail: 'owner@example.com',   // Owner's Gmail (receives notifications + digests)
+  devEmail: 'developer@example.com',         // Developer's email (shared access to sheet)
   timezone: 'America/New_York',
   tabs: {
     dashboard: 'Dashboard',
