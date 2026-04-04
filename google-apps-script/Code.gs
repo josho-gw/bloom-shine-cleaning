@@ -113,6 +113,9 @@ function doPost(e) {
         logContract(ss, data);
         sendContractNotification(data);
         break;
+      case 'password_reset':
+        sendPasswordResetEmail(data);
+        break;
       default:
         logContact(ss, data);
     }
@@ -220,6 +223,20 @@ function sendContractNotification(data) {
     'This notification was sent from your Bloom & Shine website.';
 
   MailApp.sendEmail(NOTIFICATION_EMAIL, subject, body);
+}
+
+function sendPasswordResetEmail(data) {
+  if (!data.email || !data.code) return;
+
+  var subject = '🔐 Bloom & Shine — Password Reset Code';
+  var body = 'Hi ' + (data.name || 'there') + ',\n\n' +
+    'A password reset was requested for your Bloom & Shine admin account.\n\n' +
+    'Your reset code is: ' + data.code + '\n\n' +
+    'This code expires in 30 minutes.\n\n' +
+    'If you did not request this reset, you can safely ignore this email.\n\n' +
+    '— Bloom & Shine Cleaning Services';
+
+  MailApp.sendEmail(data.email, subject, body);
 }
 
 // ============================================

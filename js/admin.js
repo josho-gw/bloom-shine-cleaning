@@ -2,23 +2,35 @@
  * Bloom & Shine Cleaning Services
  * Admin Dashboard
  *
- * Handles: passcode login, tab navigation, Google Sheets data display,
- * settings management, and session persistence.
+ * Multi-user authentication with role-based access, forced password
+ * change on first login, and forgot-password recovery via email.
  */
 
 // ============================================
-// AUTHENTICATION
+// CONFIGURATION
 // ============================================
 
-// Default passcode hash (SHA-256 of "bloom2025")
-// Change this on first login via Settings
-const DEFAULT_PASSCODE_HASH = '7a3d4c8f2e1b9a6d5c4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b';
+const AUTH_STORAGE_KEY = 'bloomshine_users';
 const SESSION_KEY = 'bloomshine_admin_session';
+const RESET_KEY = 'bloomshine_reset_codes';
 const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+const RESET_CODE_EXPIRY = 30 * 60 * 1000; // 30 minutes
 
-/**
- * Generate SHA-256 hash of a string
- */
+// Roles — developer is protected, owner has full business access, staff is future
+const ROLE_DEVELOPER = 'developer';
+const ROLE_OWNER = 'owner';
+const ROLE_STAFF = 'staff'; // Stubbed for future employees
+
+// Developer account email — cannot be removed or modified by non-developers
+const DEVELOPER_EMAIL = 'josho@groundwire.net';
+
+// Current session user
+let currentUser = null;
+
+// ============================================
+// CRYPTO
+// ============================================
+
 async function sha256(message) {
   const msgBuffer = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -26,77 +38,417 @@ async function sha256(message) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/**
- * Check if user has a valid session
- */
-function checkSession() {
-  const session = localStorage.getItem(SESSION_KEY);
-  if (!session) return false;
+function generateResetCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
 
-  try {
-    const { expiry } = JSON.parse(session);
-    if (Date.now() < expiry) {
-      showDashboard();
-      return true;
+// ============================================
+// USER STORE
+// ============================================
+
+function getUsers() {
+  const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) { /* fall through to seed */ }
+  }
+  return null;
+}
+
+function saveUsers(users) {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(users));
+}
+
+function getUserByEmail(email) {
+  const users = getUsers();
+  if (!users) return null;
+  return users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+}
+
+function updateUser(email, updates) {
+  const users = getUsers();
+  if (!users) return;
+  const idx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+  if (idx >= 0) {
+    users[idx] = { ...users[idx], ...updates };
+    saveUsers(users);
+  }
+}
+
+/**
+ * Seed default accounts on first run
+ */
+async function seedDefaultUsers() {
+  const existing = getUsers();
+  if (existing && existing.length > 0) return;
+
+  const defaultHash = await sha256('bloom2026');
+
+  const defaultUsers = [
+    {
+      email: 'josho@groundwire.net',
+      name: 'Josh Ondo',
+      role: ROLE_DEVELOPER,
+      passwordHash: defaultHash,
+      mustChangePassword: true,
+      protected: true, // Cannot be removed or role-changed by non-developers
+      createdAt: new Date().toISOString()
+    },
+    {
+      email: 'hunger4jesus08@yahoo.com',
+      name: 'Nicki Burnett',
+      role: ROLE_OWNER,
+      passwordHash: defaultHash,
+      mustChangePassword: true,
+      protected: false,
+      createdAt: new Date().toISOString()
     }
+  ];
+
+  saveUsers(defaultUsers);
+}
+
+// ============================================
+// SESSION MANAGEMENT
+// ============================================
+
+function getSession() {
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) return null;
+  try {
+    const session = JSON.parse(raw);
+    if (Date.now() < session.expiry) return session;
     localStorage.removeItem(SESSION_KEY);
   } catch (e) {
     localStorage.removeItem(SESSION_KEY);
   }
-  return false;
+  return null;
 }
 
-/**
- * Attempt login with passcode
- */
+function createSession(user) {
+  const session = {
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    expiry: Date.now() + SESSION_DURATION
+  };
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  return session;
+}
+
+function destroySession() {
+  localStorage.removeItem(SESSION_KEY);
+  currentUser = null;
+}
+
+// ============================================
+// LOGIN FLOW
+// ============================================
+
 async function attemptLogin(e) {
   e.preventDefault();
-  const input = document.getElementById('login-passcode');
+  const emailInput = document.getElementById('login-email');
+  const passInput = document.getElementById('login-password');
   const error = document.getElementById('login-error');
-  const passcode = input.value.trim();
 
-  if (!passcode) return;
+  const email = emailInput.value.trim().toLowerCase();
+  const password = passInput.value;
 
-  const hash = await sha256(passcode);
-  const storedHash = localStorage.getItem('bloomshine_passcode_hash') || DEFAULT_PASSCODE_HASH;
-
-  // On first use, accept the default passcode "bloom2025"
-  const defaultCheck = await sha256('bloom2025');
-  const isValid = hash === storedHash || (storedHash === DEFAULT_PASSCODE_HASH && hash === defaultCheck);
-
-  if (isValid) {
-    // If using placeholder default hash, store the real hash
-    if (storedHash === DEFAULT_PASSCODE_HASH) {
-      localStorage.setItem('bloomshine_passcode_hash', defaultCheck);
-    }
-
-    const session = { expiry: Date.now() + SESSION_DURATION };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    error.classList.add('hidden');
-    showDashboard();
-  } else {
-    error.classList.remove('hidden');
-    input.value = '';
-    input.focus();
+  if (!email || !password) {
+    showLoginError('Please enter both email and password.');
+    return;
   }
+
+  const user = getUserByEmail(email);
+  if (!user) {
+    showLoginError('Invalid email or password.');
+    passInput.value = '';
+    return;
+  }
+
+  const hash = await sha256(password);
+  if (hash !== user.passwordHash) {
+    showLoginError('Invalid email or password.');
+    passInput.value = '';
+    return;
+  }
+
+  currentUser = user;
+
+  // Check if password change is required
+  if (user.mustChangePassword) {
+    showScreen('force-change-screen');
+    return;
+  }
+
+  // Successful login
+  createSession(user);
+  showDashboard();
 }
 
-/**
- * Log out and show login screen
- */
+function showLoginError(msg) {
+  const error = document.getElementById('login-error');
+  error.textContent = msg;
+  error.classList.remove('hidden');
+}
+
 function adminLogout() {
-  localStorage.removeItem(SESSION_KEY);
-  document.getElementById('admin-dashboard').classList.add('hidden');
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('login-passcode').value = '';
+  destroySession();
+  showScreen('login-screen');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').classList.add('hidden');
 }
 
-/**
- * Show the dashboard and hide login
- */
+// ============================================
+// FORCED PASSWORD CHANGE
+// ============================================
+
+async function submitForceChange(e) {
+  e.preventDefault();
+  const newPass = document.getElementById('force-new-pass').value;
+  const confirmPass = document.getElementById('force-confirm-pass').value;
+  const status = document.getElementById('force-change-status');
+
+  if (!newPass || !confirmPass) {
+    status.textContent = 'Please fill in both fields.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  if (newPass.length < 6) {
+    status.textContent = 'Password must be at least 6 characters.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  if (newPass !== confirmPass) {
+    status.textContent = 'Passwords do not match.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  // Ensure new password differs from default
+  const newHash = await sha256(newPass);
+  const defaultHash = await sha256('bloom2026');
+  if (newHash === defaultHash) {
+    status.textContent = 'Please choose a different password than the default.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  updateUser(currentUser.email, {
+    passwordHash: newHash,
+    mustChangePassword: false
+  });
+
+  currentUser.passwordHash = newHash;
+  currentUser.mustChangePassword = false;
+  createSession(currentUser);
+  showDashboard();
+}
+
+// ============================================
+// FORGOT PASSWORD
+// ============================================
+
+async function submitForgotPassword(e) {
+  e.preventDefault();
+  const emailInput = document.getElementById('forgot-email');
+  const status = document.getElementById('forgot-status');
+  const email = emailInput.value.trim().toLowerCase();
+
+  if (!email) {
+    status.textContent = 'Please enter your email address.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  const user = getUserByEmail(email);
+
+  // Always show success message to prevent email enumeration
+  status.textContent = 'If an account exists with that email, a reset code has been sent.';
+  status.style.color = 'var(--color-teal)';
+
+  if (!user) return;
+
+  // Generate and store reset code
+  const code = generateResetCode();
+  const resets = JSON.parse(localStorage.getItem(RESET_KEY) || '{}');
+  resets[email] = {
+    code: await sha256(code),
+    expiry: Date.now() + RESET_CODE_EXPIRY,
+    attempts: 0
+  };
+  localStorage.setItem(RESET_KEY, JSON.stringify(resets));
+
+  // Send code via Google Apps Script
+  if (SHEETS_CONFIG.enabled && SHEETS_CONFIG.scriptUrl) {
+    try {
+      await fetch(SHEETS_CONFIG.scriptUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          source: 'password_reset',
+          email: email,
+          code: code,
+          name: user.name
+        }),
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    } catch (err) {
+      console.error('[Admin] Failed to send reset email:', err);
+    }
+  } else {
+    // Fallback: show code in console for development/setup
+    console.log(`[Admin] Reset code for ${email}: ${code}`);
+  }
+
+  // Show the code entry form
+  document.getElementById('forgot-step-1').classList.add('hidden');
+  document.getElementById('forgot-step-2').classList.remove('hidden');
+  document.getElementById('forgot-reset-email').value = email;
+}
+
+async function submitResetCode(e) {
+  e.preventDefault();
+  const email = document.getElementById('forgot-reset-email').value.trim().toLowerCase();
+  const code = document.getElementById('forgot-code').value.trim().toUpperCase();
+  const newPass = document.getElementById('forgot-new-pass').value;
+  const confirmPass = document.getElementById('forgot-confirm-pass').value;
+  const status = document.getElementById('reset-status');
+
+  if (!code || !newPass || !confirmPass) {
+    status.textContent = 'Please fill in all fields.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  if (newPass.length < 6) {
+    status.textContent = 'Password must be at least 6 characters.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  if (newPass !== confirmPass) {
+    status.textContent = 'Passwords do not match.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  // Validate reset code
+  const resets = JSON.parse(localStorage.getItem(RESET_KEY) || '{}');
+  const resetEntry = resets[email];
+
+  if (!resetEntry) {
+    status.textContent = 'No reset request found. Please start over.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  if (Date.now() > resetEntry.expiry) {
+    delete resets[email];
+    localStorage.setItem(RESET_KEY, JSON.stringify(resets));
+    status.textContent = 'Reset code has expired. Please request a new one.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  resetEntry.attempts = (resetEntry.attempts || 0) + 1;
+  if (resetEntry.attempts > 5) {
+    delete resets[email];
+    localStorage.setItem(RESET_KEY, JSON.stringify(resets));
+    status.textContent = 'Too many attempts. Please request a new code.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  const codeHash = await sha256(code);
+  if (codeHash !== resetEntry.code) {
+    localStorage.setItem(RESET_KEY, JSON.stringify(resets));
+    status.textContent = `Invalid code. ${5 - resetEntry.attempts} attempts remaining.`;
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  // Code valid — update password
+  const newHash = await sha256(newPass);
+  updateUser(email, {
+    passwordHash: newHash,
+    mustChangePassword: false
+  });
+
+  // Clean up reset code
+  delete resets[email];
+  localStorage.setItem(RESET_KEY, JSON.stringify(resets));
+
+  status.textContent = 'Password reset successfully! Redirecting to login...';
+  status.style.color = 'var(--color-teal)';
+
+  setTimeout(() => {
+    showScreen('login-screen');
+    document.getElementById('login-email').value = email;
+  }, 2000);
+}
+
+function showForgotPassword() {
+  // Reset the forgot password form
+  document.getElementById('forgot-step-1').classList.remove('hidden');
+  document.getElementById('forgot-step-2').classList.add('hidden');
+  document.getElementById('forgot-email').value = '';
+  document.getElementById('forgot-status').textContent = '';
+  document.getElementById('reset-status').textContent = '';
+  showScreen('forgot-screen');
+}
+
+// ============================================
+// SCREEN MANAGEMENT
+// ============================================
+
+function showScreen(screenId) {
+  ['login-screen', 'force-change-screen', 'forgot-screen', 'admin-dashboard'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', id !== screenId);
+  });
+}
+
 function showDashboard() {
-  document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('admin-dashboard').classList.remove('hidden');
+  const session = getSession();
+  if (session) {
+    currentUser = getUserByEmail(session.email);
+  }
+
+  if (!currentUser) {
+    showScreen('login-screen');
+    return;
+  }
+
+  showScreen('admin-dashboard');
+
+  // Update header with user info
+  const userDisplay = document.getElementById('admin-user-display');
+  if (userDisplay) {
+    userDisplay.textContent = currentUser.name;
+  }
+
+  const roleDisplay = document.getElementById('admin-role-display');
+  if (roleDisplay) {
+    const labels = { [ROLE_DEVELOPER]: 'Developer', [ROLE_OWNER]: 'Owner', [ROLE_STAFF]: 'Staff' };
+    roleDisplay.textContent = labels[currentUser.role] || currentUser.role;
+  }
+
+  // Show/hide role-gated elements
+  const canManageUsers = currentUser.role === ROLE_DEVELOPER || currentUser.role === ROLE_OWNER;
+  document.querySelectorAll('[data-role="manager"]').forEach(el => {
+    el.classList.toggle('hidden', !canManageUsers);
+  });
+  document.querySelectorAll('[data-role="developer"]').forEach(el => {
+    el.classList.toggle('hidden', currentUser.role !== ROLE_DEVELOPER);
+  });
+
   loadAdminSettings();
   loadDashboardData();
   initInvoiceTab();
@@ -107,24 +459,185 @@ function showDashboard() {
 // ============================================
 
 function switchTab(tabName) {
-  // Hide all tab content
-  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+  // Restrict user management to developer + owner
+  if (tabName === 'users' && (!currentUser || (currentUser.role !== ROLE_DEVELOPER && currentUser.role !== ROLE_OWNER))) {
+    return;
+  }
 
-  // Deactivate all tab buttons
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
 
-  // Show selected tab content
   const content = document.getElementById(`tab-${tabName}`);
   if (content) content.classList.remove('hidden');
 
-  // Activate selected tab button
   const btn = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
   if (btn) btn.classList.add('active');
 
-  // Initialize invoice tab when switching to it
-  if (tabName === 'invoices') {
-    initInvoiceTab();
+  if (tabName === 'invoices') initInvoiceTab();
+  if (tabName === 'users') renderUsersTable();
+}
+
+// ============================================
+// USER MANAGEMENT (Superuser only)
+// ============================================
+
+function renderUsersTable() {
+  const tbody = document.getElementById('users-table-body');
+  if (!tbody) return;
+
+  const users = getUsers() || [];
+
+  const roleBadgeClass = {
+    [ROLE_DEVELOPER]: 'status-booked',
+    [ROLE_OWNER]: 'status-contacted',
+    [ROLE_STAFF]: 'status-completed'
+  };
+
+  const roleLabels = {
+    [ROLE_DEVELOPER]: 'Developer',
+    [ROLE_OWNER]: 'Owner',
+    [ROLE_STAFF]: 'Staff'
+  };
+
+  tbody.innerHTML = users.map(user => {
+    const isSelf = user.email === currentUser.email;
+    const isProtected = user.protected && currentUser.role !== ROLE_DEVELOPER;
+    const canModify = !isSelf && !isProtected;
+
+    let actions = '';
+    if (isSelf) {
+      actions = '<span class="text-xs text-gray-400">You</span>';
+    } else if (isProtected) {
+      actions = '<span class="text-xs text-gray-400">Protected</span>';
+    } else {
+      actions = `
+        <button onclick="resetUserPassword('${escHtml(user.email)}')" class="text-xs text-teal hover:underline mr-2">Reset PW</button>
+        <button onclick="removeUser('${escHtml(user.email)}')" class="text-xs text-rose hover:underline">Remove</button>
+      `;
+    }
+
+    return `
+      <tr class="border-t border-gray-100 hover:bg-cream/50 transition-colors">
+        <td class="px-4 py-3 font-medium">${escHtml(user.name)}</td>
+        <td class="px-4 py-3">
+          <a href="mailto:${escHtml(user.email)}" class="text-teal hover:underline text-sm">${escHtml(user.email)}</a>
+        </td>
+        <td class="px-4 py-3">
+          <span class="status-badge ${roleBadgeClass[user.role] || 'status-completed'}">${roleLabels[user.role] || user.role}</span>
+        </td>
+        <td class="px-4 py-3 text-xs text-gray-400">${user.mustChangePassword ? 'Pending' : 'Set'}</td>
+        <td class="px-4 py-3 text-xs text-gray-400">${formatDate(user.createdAt)}</td>
+        <td class="px-4 py-3">${actions}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function addNewUser(e) {
+  e.preventDefault();
+  const name = document.getElementById('new-user-name').value.trim();
+  const email = document.getElementById('new-user-email').value.trim().toLowerCase();
+  const role = document.getElementById('new-user-role').value;
+  const status = document.getElementById('add-user-status');
+
+  if (!name || !email) {
+    status.textContent = 'Name and email are required.';
+    status.style.color = 'var(--color-rose)';
+    return;
   }
+
+  if (getUserByEmail(email)) {
+    status.textContent = 'A user with that email already exists.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  const defaultHash = await sha256('bloom2026');
+  const users = getUsers() || [];
+  users.push({
+    email,
+    name,
+    role,
+    passwordHash: defaultHash,
+    mustChangePassword: true,
+    createdAt: new Date().toISOString()
+  });
+  saveUsers(users);
+
+  status.textContent = `User added. Default password: bloom2026`;
+  status.style.color = 'var(--color-teal)';
+
+  document.getElementById('new-user-name').value = '';
+  document.getElementById('new-user-email').value = '';
+  renderUsersTable();
+}
+
+async function resetUserPassword(email) {
+  if (!confirm(`Reset password for ${email} to the default (bloom2026)?`)) return;
+
+  const defaultHash = await sha256('bloom2026');
+  updateUser(email, {
+    passwordHash: defaultHash,
+    mustChangePassword: true
+  });
+  renderUsersTable();
+  alert(`Password reset. User will be prompted to change it on next login.`);
+}
+
+function removeUser(email) {
+  if (!confirm(`Remove user ${email}? This cannot be undone.`)) return;
+
+  const users = getUsers() || [];
+  const filtered = users.filter(u => u.email.toLowerCase() !== email.toLowerCase());
+  saveUsers(filtered);
+  renderUsersTable();
+}
+
+// ============================================
+// SETTINGS — Change Own Password
+// ============================================
+
+async function changePassword() {
+  const current = document.getElementById('settings-current-pass').value;
+  const newPass = document.getElementById('settings-new-pass').value;
+  const confirm = document.getElementById('settings-confirm-pass').value;
+  const status = document.getElementById('passcode-status');
+
+  if (!current || !newPass || !confirm) {
+    status.textContent = 'Please fill in all fields.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  if (newPass.length < 6) {
+    status.textContent = 'Password must be at least 6 characters.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  if (newPass !== confirm) {
+    status.textContent = 'New passwords do not match.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  const currentHash = await sha256(current);
+  if (currentHash !== currentUser.passwordHash) {
+    status.textContent = 'Current password is incorrect.';
+    status.style.color = 'var(--color-rose)';
+    return;
+  }
+
+  const newHash = await sha256(newPass);
+  updateUser(currentUser.email, { passwordHash: newHash });
+  currentUser.passwordHash = newHash;
+
+  status.textContent = 'Password updated successfully!';
+  status.style.color = 'var(--color-teal)';
+
+  document.getElementById('settings-current-pass').value = '';
+  document.getElementById('settings-new-pass').value = '';
+  document.getElementById('settings-confirm-pass').value = '';
 }
 
 // ============================================
@@ -132,14 +645,10 @@ function switchTab(tabName) {
 // ============================================
 
 async function loadDashboardData() {
-  if (!SHEETS_CONFIG.enabled || !SHEETS_CONFIG.scriptUrl) {
-    return;
-  }
+  if (!SHEETS_CONFIG.enabled || !SHEETS_CONFIG.scriptUrl) return;
 
   try {
-    const response = await fetch(`${SHEETS_CONFIG.scriptUrl}?action=getAll`, {
-      method: 'GET'
-    });
+    const response = await fetch(`${SHEETS_CONFIG.scriptUrl}?action=getAll`);
     const data = await response.json();
 
     if (data.result === 'success') {
@@ -154,7 +663,7 @@ async function loadDashboardData() {
   }
 }
 
-async function refreshData(tab) {
+async function refreshData() {
   await loadDashboardData();
 }
 
@@ -241,9 +750,7 @@ function renderRecentActivity(data) {
   const container = document.getElementById('recent-activity');
   if (!container) return;
 
-  // Combine all entries with type labels, take most recent 10
   const all = [];
-
   (data.contacts || []).forEach(row => {
     all.push({ type: 'contact', date: row[0], name: row[1], detail: row[4] || 'General inquiry' });
   });
@@ -254,7 +761,6 @@ function renderRecentActivity(data) {
     all.push({ type: 'contract', date: row[0], name: row[1], detail: `${row[5]} (${row[6]})` });
   });
 
-  // Sort by date descending
   all.sort((a, b) => new Date(b.date) - new Date(a.date));
   const recent = all.slice(0, 10);
 
@@ -340,7 +846,7 @@ async function testConnection() {
       status.textContent = 'Connection successful!';
       status.style.color = 'var(--color-teal)';
     } else {
-      status.textContent = 'Connected, but unexpected response. Check your Apps Script.';
+      status.textContent = 'Connected, but unexpected response.';
       status.style.color = 'var(--color-gold)';
     }
   } catch (err) {
@@ -349,53 +855,8 @@ async function testConnection() {
   }
 }
 
-async function changePasscode() {
-  const current = document.getElementById('settings-current-pass').value;
-  const newPass = document.getElementById('settings-new-pass').value;
-  const confirm = document.getElementById('settings-confirm-pass').value;
-  const status = document.getElementById('passcode-status');
-
-  if (!current || !newPass || !confirm) {
-    status.textContent = 'Please fill in all fields.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  if (newPass !== confirm) {
-    status.textContent = 'New passcodes do not match.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  if (newPass.length < 4) {
-    status.textContent = 'Passcode must be at least 4 characters.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  const currentHash = await sha256(current);
-  const storedHash = localStorage.getItem('bloomshine_passcode_hash') || await sha256('bloom2025');
-
-  if (currentHash !== storedHash) {
-    status.textContent = 'Current passcode is incorrect.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  const newHash = await sha256(newPass);
-  localStorage.setItem('bloomshine_passcode_hash', newHash);
-
-  status.textContent = 'Passcode updated successfully!';
-  status.style.color = 'var(--color-teal)';
-
-  // Clear fields
-  document.getElementById('settings-current-pass').value = '';
-  document.getElementById('settings-new-pass').value = '';
-  document.getElementById('settings-confirm-pass').value = '';
-}
-
 // ============================================
-// INVOICE TAB INITIALIZATION
+// INVOICE TAB
 // ============================================
 
 function initInvoiceTab() {
@@ -424,8 +885,7 @@ function initInvoiceTab() {
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   } catch (e) {
     return dateStr;
   }
@@ -442,6 +902,17 @@ function escHtml(str) {
 // INIT
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  checkSession();
+document.addEventListener('DOMContentLoaded', async () => {
+  await seedDefaultUsers();
+
+  const session = getSession();
+  if (session) {
+    currentUser = getUserByEmail(session.email);
+    if (currentUser) {
+      showDashboard();
+      return;
+    }
+  }
+
+  showScreen('login-screen');
 });

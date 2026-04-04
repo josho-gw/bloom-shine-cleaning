@@ -24,20 +24,32 @@
 <body class="bg-cream min-h-screen">
 
   <!-- ============================================
-       LOGIN GATE
+       LOGIN SCREEN
        ============================================ -->
   <div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
     <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
       <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-14 mx-auto mb-4">
       <h1 class="font-heading text-teal text-xl font-bold mb-1">Admin Portal</h1>
-      <p class="text-gray-400 text-sm mb-6">Enter your passcode to continue</p>
+      <p class="text-gray-400 text-sm mb-6">Sign in with your email and password</p>
 
       <form onsubmit="attemptLogin(event)">
-        <input type="password" id="login-passcode" class="form-input text-center text-lg tracking-widest mb-4"
-          placeholder="Passcode" autocomplete="off" autofocus>
-        <p id="login-error" class="text-rose text-sm mb-4 hidden">Incorrect passcode. Please try again.</p>
+        <div class="text-left space-y-3 mb-4">
+          <div>
+            <label class="form-label">Email</label>
+            <input type="email" id="login-email" class="form-input" placeholder="your@email.com" autocomplete="email" autofocus>
+          </div>
+          <div>
+            <label class="form-label">Password</label>
+            <input type="password" id="login-password" class="form-input" placeholder="Password" autocomplete="current-password">
+          </div>
+        </div>
+        <p id="login-error" class="text-rose text-sm mb-4 hidden"></p>
         <button type="submit" class="btn-primary w-full">Sign In</button>
       </form>
+
+      <div class="mt-4">
+        <button onclick="showForgotPassword()" class="text-xs text-gray-400 hover:text-teal transition-colors">Forgot password?</button>
+      </div>
 
       <a href="index.html" class="inline-block mt-6 text-xs text-gray-400 hover:text-teal transition-colors">&larr; Back to website</a>
     </div>
@@ -45,7 +57,86 @@
 
 
   <!-- ============================================
-       ADMIN DASHBOARD (hidden until login)
+       FORCE PASSWORD CHANGE SCREEN
+       ============================================ -->
+  <div id="force-change-screen" class="hidden min-h-screen flex items-center justify-center px-4">
+    <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+      <div class="w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: var(--color-sage-light);">
+        <svg class="w-7 h-7 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      </div>
+      <h1 class="font-heading text-teal text-xl font-bold mb-1">Set Your Password</h1>
+      <p class="text-gray-400 text-sm mb-6">You must change your default password before continuing.</p>
+
+      <form onsubmit="submitForceChange(event)">
+        <div class="text-left space-y-3 mb-4">
+          <div>
+            <label class="form-label">New Password</label>
+            <input type="password" id="force-new-pass" class="form-input" placeholder="At least 6 characters" autocomplete="new-password">
+          </div>
+          <div>
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" id="force-confirm-pass" class="form-input" placeholder="Confirm password" autocomplete="new-password">
+          </div>
+        </div>
+        <p id="force-change-status" class="text-sm mb-4">&nbsp;</p>
+        <button type="submit" class="btn-primary w-full">Set Password &amp; Continue</button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================
+       FORGOT PASSWORD SCREEN
+       ============================================ -->
+  <div id="forgot-screen" class="hidden min-h-screen flex items-center justify-center px-4">
+    <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+      <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-12 mx-auto mb-4">
+      <h1 class="font-heading text-teal text-xl font-bold mb-1">Reset Password</h1>
+
+      <!-- Step 1: Enter Email -->
+      <div id="forgot-step-1">
+        <p class="text-gray-400 text-sm mb-6">Enter your email to receive a reset code.</p>
+        <form onsubmit="submitForgotPassword(event)">
+          <div class="text-left mb-4">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="forgot-email" class="form-input" placeholder="your@email.com">
+          </div>
+          <p id="forgot-status" class="text-sm mb-4">&nbsp;</p>
+          <button type="submit" class="btn-primary w-full">Send Reset Code</button>
+        </form>
+      </div>
+
+      <!-- Step 2: Enter Code + New Password -->
+      <div id="forgot-step-2" class="hidden">
+        <p class="text-gray-400 text-sm mb-6">Enter the 6-character code sent to your email and choose a new password.</p>
+        <form onsubmit="submitResetCode(event)">
+          <input type="hidden" id="forgot-reset-email">
+          <div class="text-left space-y-3 mb-4">
+            <div>
+              <label class="form-label">Reset Code</label>
+              <input type="text" id="forgot-code" class="form-input text-center text-lg tracking-widest uppercase" placeholder="ABC123" maxlength="6" autocomplete="off">
+            </div>
+            <div>
+              <label class="form-label">New Password</label>
+              <input type="password" id="forgot-new-pass" class="form-input" placeholder="At least 6 characters" autocomplete="new-password">
+            </div>
+            <div>
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" id="forgot-confirm-pass" class="form-input" placeholder="Confirm password" autocomplete="new-password">
+            </div>
+          </div>
+          <p id="reset-status" class="text-sm mb-4">&nbsp;</p>
+          <button type="submit" class="btn-primary w-full">Reset Password</button>
+        </form>
+      </div>
+
+      <button onclick="showScreen('login-screen')" class="inline-block mt-6 text-xs text-gray-400 hover:text-teal transition-colors">&larr; Back to sign in</button>
+    </div>
+  </div>
+
+
+  <!-- ============================================
+       ADMIN DASHBOARD
        ============================================ -->
   <div id="admin-dashboard" class="hidden">
 
@@ -59,8 +150,12 @@
             <p class="text-gray-400 text-xs">Bloom &amp; Shine Cleaning Services</p>
           </div>
         </div>
-        <div class="flex items-center gap-3">
-          <a href="index.html" class="text-sm text-gray-400 hover:text-teal transition-colors">View Site</a>
+        <div class="flex items-center gap-4">
+          <div class="text-right hidden sm:block">
+            <p id="admin-user-display" class="text-sm font-medium text-teal"></p>
+            <p id="admin-role-display" class="text-xs text-gray-400"></p>
+          </div>
+          <a href="index.html" class="text-sm text-gray-400 hover:text-teal transition-colors hidden sm:inline">View Site</a>
           <button onclick="adminLogout()" class="btn-secondary text-xs px-3 py-1.5">Log Out</button>
         </div>
       </div>
@@ -75,6 +170,7 @@
           <button onclick="switchTab('estimates')" class="admin-tab" data-tab="estimates">Estimates</button>
           <button onclick="switchTab('contracts')" class="admin-tab" data-tab="contracts">Contracts</button>
           <button onclick="switchTab('invoices')" class="admin-tab" data-tab="invoices">Invoices</button>
+          <button onclick="switchTab('users')" class="admin-tab" data-tab="users" data-role="manager">Users</button>
           <button onclick="switchTab('settings')" class="admin-tab" data-tab="settings">Settings</button>
         </nav>
       </div>
@@ -86,7 +182,6 @@
       <!-- ==================== OVERVIEW TAB ==================== -->
       <div id="tab-overview" class="tab-content">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <!-- Stat Cards -->
           <div class="bg-white rounded-xl p-6 shadow-sm">
             <div class="flex items-center justify-between mb-2">
               <p class="text-gray-400 text-sm font-heading">Total Contacts</p>
@@ -96,7 +191,6 @@
             </div>
             <p id="stat-contacts" class="text-3xl font-bold text-teal">—</p>
           </div>
-
           <div class="bg-white rounded-xl p-6 shadow-sm">
             <div class="flex items-center justify-between mb-2">
               <p class="text-gray-400 text-sm font-heading">Estimates</p>
@@ -106,7 +200,6 @@
             </div>
             <p id="stat-estimates" class="text-3xl font-bold text-teal">—</p>
           </div>
-
           <div class="bg-white rounded-xl p-6 shadow-sm">
             <div class="flex items-center justify-between mb-2">
               <p class="text-gray-400 text-sm font-heading">Active Contracts</p>
@@ -116,7 +209,6 @@
             </div>
             <p id="stat-contracts" class="text-3xl font-bold text-teal">—</p>
           </div>
-
           <div class="bg-white rounded-xl p-6 shadow-sm">
             <div class="flex items-center justify-between mb-2">
               <p class="text-gray-400 text-sm font-heading">Quick Actions</p>
@@ -131,7 +223,6 @@
           </div>
         </div>
 
-        <!-- Recent Activity -->
         <div class="bg-white rounded-xl p-6 shadow-sm">
           <h3 class="font-heading text-teal font-bold text-lg mb-4">Recent Activity</h3>
           <div id="recent-activity" class="space-y-3">
@@ -144,10 +235,7 @@
       <div id="tab-contacts" class="tab-content hidden">
         <div class="flex items-center justify-between mb-6">
           <h2 class="font-heading text-teal text-2xl font-bold">Contacts</h2>
-          <button onclick="refreshData('contacts')" class="btn-secondary text-xs px-3 py-1.5">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            Refresh
-          </button>
+          <button onclick="refreshData()" class="btn-secondary text-xs px-3 py-1.5">Refresh</button>
         </div>
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
@@ -174,10 +262,7 @@
       <div id="tab-estimates" class="tab-content hidden">
         <div class="flex items-center justify-between mb-6">
           <h2 class="font-heading text-teal text-2xl font-bold">Estimates</h2>
-          <button onclick="refreshData('estimates')" class="btn-secondary text-xs px-3 py-1.5">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            Refresh
-          </button>
+          <button onclick="refreshData()" class="btn-secondary text-xs px-3 py-1.5">Refresh</button>
         </div>
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
@@ -204,10 +289,7 @@
       <div id="tab-contracts" class="tab-content hidden">
         <div class="flex items-center justify-between mb-6">
           <h2 class="font-heading text-teal text-2xl font-bold">Contracts</h2>
-          <button onclick="refreshData('contracts')" class="btn-secondary text-xs px-3 py-1.5">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            Refresh
-          </button>
+          <button onclick="refreshData()" class="btn-secondary text-xs px-3 py-1.5">Refresh</button>
         </div>
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
@@ -233,7 +315,6 @@
       <!-- ==================== INVOICES TAB ==================== -->
       <div id="tab-invoices" class="tab-content hidden">
         <h2 class="font-heading text-teal text-2xl font-bold mb-6">Create Invoice</h2>
-
         <div class="bg-white rounded-xl shadow-sm p-6 sm:p-8 max-w-2xl">
           <div class="space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -260,17 +341,11 @@
                 <input type="date" id="inv-date" class="form-input">
               </div>
             </div>
-
-            <!-- Line Items -->
             <div>
               <label class="form-label">Line Items</label>
-              <div id="inv-line-items" class="space-y-2">
-                <!-- Rendered by admin.js -->
-              </div>
+              <div id="inv-line-items" class="space-y-2"></div>
               <button onclick="addInvoiceLineItem()" class="text-sm text-teal hover:underline mt-2">+ Add Line Item</button>
             </div>
-
-            <!-- Add-ons Quick Add -->
             <div>
               <label class="form-label">Quick Add-Ons</label>
               <div class="flex flex-wrap gap-2">
@@ -279,14 +354,10 @@
                 <button onclick="addInvoiceAddon('Fridge Cleaning', 50)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Fridge $50</button>
               </div>
             </div>
-
-            <!-- Total -->
             <div class="bg-cream rounded-xl p-4 flex justify-between items-center">
               <span class="font-heading text-teal font-bold text-lg">Total</span>
               <span id="inv-total" class="font-heading text-rose font-bold text-2xl">$0.00</span>
             </div>
-
-            <!-- Payment Method -->
             <div>
               <label class="form-label">Preferred Payment Method</label>
               <select id="inv-payment-method" class="form-select">
@@ -296,7 +367,6 @@
               </select>
             </div>
           </div>
-
           <div class="mt-6 flex flex-col sm:flex-row gap-3">
             <button onclick="generateInvoicePDF()" class="btn-primary flex-1">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -310,11 +380,86 @@
         </div>
       </div>
 
+      <!-- ==================== USERS TAB (Developer + Owner only) ==================== -->
+      <div id="tab-users" class="tab-content hidden" data-role="manager">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="font-heading text-teal text-2xl font-bold">User Management</h2>
+        </div>
+
+        <!-- Current Users -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-cream">
+                <tr>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Name</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Email</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Role</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Password</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Created</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Add New User -->
+        <div class="bg-white rounded-xl shadow-sm p-6 max-w-lg">
+          <h3 class="font-heading text-teal font-semibold mb-4">Add New User</h3>
+          <form onsubmit="addNewUser(event)">
+            <div class="space-y-3">
+              <div>
+                <label class="form-label">Full Name *</label>
+                <input type="text" id="new-user-name" class="form-input" placeholder="Employee name">
+              </div>
+              <div>
+                <label class="form-label">Email *</label>
+                <input type="email" id="new-user-email" class="form-input" placeholder="employee@email.com">
+              </div>
+              <div>
+                <label class="form-label">Role</label>
+                <select id="new-user-role" class="form-select">
+                  <option value="staff">Staff</option>
+                  <option value="owner">Owner</option>
+                </select>
+              </div>
+            </div>
+            <p id="add-user-status" class="text-xs mt-3">&nbsp;</p>
+            <button type="submit" class="btn-primary text-xs px-4 py-2 mt-2">Add User</button>
+          </form>
+          <p class="text-xs text-gray-400 mt-3 italic">New users receive the default password (bloom2026) and will be prompted to change it on first login.</p>
+        </div>
+      </div>
+
       <!-- ==================== SETTINGS TAB ==================== -->
       <div id="tab-settings" class="tab-content hidden">
         <h2 class="font-heading text-teal text-2xl font-bold mb-6">Settings</h2>
-
         <div class="space-y-6 max-w-xl">
+
+          <!-- Change Password -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="font-heading text-teal font-semibold mb-4">Change Password</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="form-label">Current Password</label>
+                <input type="password" id="settings-current-pass" class="form-input" autocomplete="current-password">
+              </div>
+              <div>
+                <label class="form-label">New Password</label>
+                <input type="password" id="settings-new-pass" class="form-input" autocomplete="new-password">
+              </div>
+              <div>
+                <label class="form-label">Confirm New Password</label>
+                <input type="password" id="settings-confirm-pass" class="form-input" autocomplete="new-password">
+              </div>
+              <button onclick="changePassword()" class="btn-primary text-xs px-4 py-2">Update Password</button>
+              <p id="passcode-status" class="text-xs text-gray-400"></p>
+            </div>
+          </div>
+
           <!-- Google Sheets Connection -->
           <div class="bg-white rounded-xl shadow-sm p-6">
             <h3 class="font-heading text-teal font-semibold mb-4">Google Sheets Connection</h3>
@@ -329,27 +474,6 @@
                 <button onclick="testConnection()" class="btn-secondary text-xs px-4 py-2">Test Connection</button>
               </div>
               <p id="settings-status" class="text-xs text-gray-400"></p>
-            </div>
-          </div>
-
-          <!-- Change Passcode -->
-          <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="font-heading text-teal font-semibold mb-4">Change Passcode</h3>
-            <div class="space-y-3">
-              <div>
-                <label class="form-label">Current Passcode</label>
-                <input type="password" id="settings-current-pass" class="form-input">
-              </div>
-              <div>
-                <label class="form-label">New Passcode</label>
-                <input type="password" id="settings-new-pass" class="form-input">
-              </div>
-              <div>
-                <label class="form-label">Confirm New Passcode</label>
-                <input type="password" id="settings-confirm-pass" class="form-input">
-              </div>
-              <button onclick="changePasscode()" class="btn-primary text-xs px-4 py-2">Update Passcode</button>
-              <p id="passcode-status" class="text-xs text-gray-400"></p>
             </div>
           </div>
 
@@ -386,9 +510,7 @@
       border-left: none;
       border-right: none;
     }
-    .admin-tab:hover {
-      color: var(--color-teal);
-    }
+    .admin-tab:hover { color: var(--color-teal); }
     .admin-tab.active {
       color: var(--color-teal);
       border-bottom-color: var(--color-teal);
