@@ -35,6 +35,64 @@
 const NOTIFICATION_EMAIL = 'bloom.shinecleaningservices@yahoo.com';
 const SPREADSHEET_ID = ''; // Set to your Google Sheet ID after creating it
 
+// ============================================
+// GET HANDLER (Admin Dashboard data retrieval)
+// ============================================
+
+function doGet(e) {
+  try {
+    var action = e.parameter.action || 'ping';
+    var ss = SPREADSHEET_ID
+      ? SpreadsheetApp.openById(SPREADSHEET_ID)
+      : SpreadsheetApp.getActiveSpreadsheet();
+
+    if (action === 'ping') {
+      return jsonResponse({ result: 'pong' });
+    }
+
+    if (action === 'getAll') {
+      var contacts = getSheetData(ss, 'Contacts');
+      var estimates = getSheetData(ss, 'Estimates');
+      var contracts = getSheetData(ss, 'Contracts');
+
+      return jsonResponse({
+        result: 'success',
+        contacts: contacts,
+        estimates: estimates,
+        contracts: contracts
+      });
+    }
+
+    if (action === 'getSheet') {
+      var sheetName = e.parameter.sheet || 'Contacts';
+      var data = getSheetData(ss, sheetName);
+      return jsonResponse({ result: 'success', data: data });
+    }
+
+    return jsonResponse({ result: 'error', message: 'Unknown action' });
+
+  } catch (error) {
+    return jsonResponse({ result: 'error', message: error.toString() });
+  }
+}
+
+function getSheetData(ss, sheetName) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return []; // Only header row
+  return sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+}
+
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================
+// POST HANDLER (Form submissions)
+// ============================================
+
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);

@@ -1,6 +1,6 @@
 /**
  * Bloom & Shine Cleaning Services
- * Invoice Generator (Shannon-facing)
+ * Invoice Generator (Admin-facing)
  *
  * Creates branded invoices as downloadable PDFs.
  * Accessible via a subtle link in the footer.

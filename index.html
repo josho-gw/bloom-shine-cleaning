@@ -23,9 +23,8 @@
   <!-- Custom Styles -->
   <link rel="stylesheet" href="css/custom.css">
 
-  <!-- jsPDF for contract/invoice PDF generation -->
+  <!-- jsPDF for contract PDF generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
 
   <!-- Signature Pad for contract signing -->
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" defer></script>
@@ -686,94 +685,6 @@
   </section>
 
 
-  <!-- ============================================
-       INVOICE GENERATOR (Shannon-facing, accessible via footer link)
-       ============================================ -->
-  <div id="invoice-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Invoice Generator">
-    <div class="modal-content max-w-2xl">
-      <button onclick="closeInvoice()" class="modal-close" aria-label="Close">&times;</button>
-
-      <div class="text-center mb-6">
-        <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-10 mx-auto mb-2">
-        <h3 class="font-heading text-teal text-2xl font-bold">Create Invoice</h3>
-      </div>
-
-      <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="form-label">Client Name *</label>
-            <input type="text" id="inv-client-name" class="form-input" placeholder="Client's full name">
-          </div>
-          <div>
-            <label class="form-label">Client Email</label>
-            <input type="email" id="inv-client-email" class="form-input" placeholder="client@email.com">
-          </div>
-        </div>
-        <div>
-          <label class="form-label">Client Address</label>
-          <input type="text" id="inv-client-address" class="form-input" placeholder="Street, City, State ZIP">
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="form-label">Invoice Number</label>
-            <input type="text" id="inv-number" class="form-input" readonly>
-          </div>
-          <div>
-            <label class="form-label">Date of Service</label>
-            <input type="date" id="inv-date" class="form-input">
-          </div>
-        </div>
-
-        <!-- Line Items -->
-        <div>
-          <label class="form-label">Line Items</label>
-          <div id="inv-line-items" class="space-y-2">
-            <!-- Rendered by invoice.js -->
-          </div>
-          <button onclick="addInvoiceLineItem()" class="text-sm text-teal hover:underline mt-2">+ Add Line Item</button>
-        </div>
-
-        <!-- Add-ons Quick Add -->
-        <div>
-          <label class="form-label">Quick Add-Ons</label>
-          <div class="flex flex-wrap gap-2">
-            <button onclick="addInvoiceAddon('Dish Washing', 15)" class="text-xs px-3 py-1.5 rounded-full border border-sage hover:bg-sage-light transition-colors">Dishes $15</button>
-            <button onclick="addInvoiceAddon('Oven Cleaning', 50)" class="text-xs px-3 py-1.5 rounded-full border border-sage hover:bg-sage-light transition-colors">Oven $50</button>
-            <button onclick="addInvoiceAddon('Fridge Cleaning', 50)" class="text-xs px-3 py-1.5 rounded-full border border-sage hover:bg-sage-light transition-colors">Fridge $50</button>
-          </div>
-        </div>
-
-        <!-- Total -->
-        <div class="bg-cream rounded-xl p-4 flex justify-between items-center">
-          <span class="font-heading text-teal font-bold text-lg">Total</span>
-          <span id="inv-total" class="font-heading text-rose font-bold text-2xl">$0.00</span>
-        </div>
-
-        <!-- Payment Method -->
-        <div>
-          <label class="form-label">Preferred Payment Method</label>
-          <select id="inv-payment-method" class="form-select">
-            <option value="venmo">Venmo</option>
-            <option value="cashapp">Cash App</option>
-            <option value="cash">Cash</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="mt-6 flex flex-col sm:flex-row gap-3">
-        <button onclick="generateInvoicePDF()" class="btn-primary flex-1">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          Download PDF
-        </button>
-        <button onclick="sendInvoicePaymentLink()" class="btn-rose flex-1">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-          Copy Payment Link
-        </button>
-      </div>
-    </div>
-  </div>
-
-
   <!-- Checklist Modal -->
   <div id="checklist-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Service Checklist">
     <div class="modal-content max-w-lg">
@@ -837,8 +748,8 @@
         <p class="scripture text-xs opacity-50">
           "Whatever you do, in word or deed, do everything in the name of the Lord Jesus." — Colossians 3:17
         </p>
-        <!-- Shannon admin link -->
-        <button onclick="openInvoice()" class="text-xs opacity-30 hover:opacity-60 transition-opacity" title="Admin: Create Invoice">Invoice</button>
+        <!-- Admin portal -->
+        <a href="admin.html" class="text-xs opacity-20 hover:opacity-50 transition-opacity" title="Admin Portal">Admin</a>
       </div>
     </div>
   </footer>
@@ -851,7 +762,6 @@
   <script src="js/app.js"></script>
   <script src="js/estimator.js"></script>
   <script src="js/contract.js"></script>
-  <script src="js/invoice.js"></script>
 
 </body>
 </html>

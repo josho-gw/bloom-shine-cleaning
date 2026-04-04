@@ -2,8 +2,6 @@
 
 A dynamic single-page website for **Bloom & Shine Cleaning Services LLC**, a Christ-centered cleaning and organization company serving Hall & Jackson County, GA.
 
-Built with love as a pro-bono gift.
-
 ---
 
 ## Features
@@ -36,13 +34,15 @@ Built with love as a pro-bono gift.
 
 ```
 websiteCode/
-├── index.html              # Single-page site
+├── index.html              # Public-facing single-page site
+├── admin.html              # Admin dashboard (passcode-protected)
 ├── css/custom.css           # Brand palette, fonts, components
 ├── js/
 │   ├── app.js               # Core: nav, data loading, checklists, contact form
 │   ├── estimator.js         # Pricing estimator wizard
 │   ├── contract.js          # Digital agreement + signature + PDF
 │   ├── invoice.js           # Invoice generator + PDF
+│   ├── admin.js             # Admin dashboard: login, tabs, data views
 │   └── sheets.js            # Google Apps Script integration
 ├── data/
 │   ├── services.json        # Service definitions + pricing ranges
@@ -77,7 +77,19 @@ To connect the contact form, estimator, and contract system:
    - `enabled` to `true`
 8. Commit and push
 
-### 3. Cal.com (Online Booking)
+### 3. Admin Dashboard
+
+The admin portal is at `admin.html` (linked in the footer). Default passcode is `bloom2025` — change it immediately on first login via Settings.
+
+The admin dashboard provides:
+- Overview with stats from Google Sheets
+- Contact, estimate, and contract data tables
+- Invoice generator with PDF export and payment link generation
+- Settings for Google Sheets connection and passcode management
+
+The Apps Script URL is configured in the admin Settings tab (stored in `localStorage`).
+
+### 4. Cal.com (Online Booking)
 
 1. Create a free account at [cal.com](https://cal.com)
 2. Set up event types: "Walk-Through (15 min)" and "Cleaning Appointment"
@@ -99,13 +111,11 @@ Search `index.html` for the phone number or email and update all instances.
 
 ---
 
-## Credits
+## Acknowledgments
 
-**Owner:** Nicki Burnett — Bloom & Shine Cleaning Services LLC
+Developed by **Josh Ondo**.
 
-**Built by:** Josh Ondo
-
-**AI Collaborator:** Claude (Anthropic) — architecture, design, and development partner
+Technical assistance provided by [Claude](https://claude.ai) (Anthropic).
 
 ---
 

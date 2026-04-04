@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Bloom &amp; Shine Cleaning Services</title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Tailwind CSS v4 Browser CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/custom.css">
+
+  <!-- jsPDF for invoice PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+</head>
+<body class="bg-cream min-h-screen">
+
+  <!-- ============================================
+       LOGIN GATE
+       ============================================ -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
+    <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+      <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-14 mx-auto mb-4">
+      <h1 class="font-heading text-teal text-xl font-bold mb-1">Admin Portal</h1>
+      <p class="text-gray-400 text-sm mb-6">Enter your passcode to continue</p>
+
+      <form onsubmit="attemptLogin(event)">
+        <input type="password" id="login-passcode" class="form-input text-center text-lg tracking-widest mb-4"
+          placeholder="Passcode" autocomplete="off" autofocus>
+        <p id="login-error" class="text-rose text-sm mb-4 hidden">Incorrect passcode. Please try again.</p>
+        <button type="submit" class="btn-primary w-full">Sign In</button>
+      </form>
+
+      <a href="index.html" class="inline-block mt-6 text-xs text-gray-400 hover:text-teal transition-colors">&larr; Back to website</a>
+    </div>
+  </div>
+
+
+  <!-- ============================================
+       ADMIN DASHBOARD (hidden until login)
+       ============================================ -->
+  <div id="admin-dashboard" class="hidden">
+
+    <!-- Top Bar -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-10">
+          <div>
+            <h1 class="font-heading text-teal text-lg font-bold leading-tight">Admin Dashboard</h1>
+            <p class="text-gray-400 text-xs">Bloom &amp; Shine Cleaning Services</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="index.html" class="text-sm text-gray-400 hover:text-teal transition-colors">View Site</a>
+          <button onclick="adminLogout()" class="btn-secondary text-xs px-3 py-1.5">Log Out</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="bg-white border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <nav class="flex gap-1 overflow-x-auto">
+          <button onclick="switchTab('overview')" class="admin-tab active" data-tab="overview">Overview</button>
+          <button onclick="switchTab('contacts')" class="admin-tab" data-tab="contacts">Contacts</button>
+          <button onclick="switchTab('estimates')" class="admin-tab" data-tab="estimates">Estimates</button>
+          <button onclick="switchTab('contracts')" class="admin-tab" data-tab="contracts">Contracts</button>
+          <button onclick="switchTab('invoices')" class="admin-tab" data-tab="invoices">Invoices</button>
+          <button onclick="switchTab('settings')" class="admin-tab" data-tab="settings">Settings</button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Tab Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+      <!-- ==================== OVERVIEW TAB ==================== -->
+      <div id="tab-overview" class="tab-content">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <!-- Stat Cards -->
+          <div class="bg-white rounded-xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-gray-400 text-sm font-heading">Total Contacts</p>
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: var(--color-blush-light);">
+                <svg class="w-5 h-5 text-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+            </div>
+            <p id="stat-contacts" class="text-3xl font-bold text-teal">—</p>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-gray-400 text-sm font-heading">Estimates</p>
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: var(--color-sage-light);">
+                <svg class="w-5 h-5 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              </div>
+            </div>
+            <p id="stat-estimates" class="text-3xl font-bold text-teal">—</p>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-gray-400 text-sm font-heading">Active Contracts</p>
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: var(--color-blush-light);">
+                <svg class="w-5 h-5 text-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              </div>
+            </div>
+            <p id="stat-contracts" class="text-3xl font-bold text-teal">—</p>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-gray-400 text-sm font-heading">Quick Actions</p>
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: var(--color-sage-light);">
+                <svg class="w-5 h-5 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </div>
+            </div>
+            <div class="flex flex-col gap-2 mt-2">
+              <button onclick="switchTab('invoices')" class="text-xs text-left text-teal hover:underline">Create Invoice &rarr;</button>
+              <a href="https://venmo.com/bloomshinecleaningLLC" target="_blank" class="text-xs text-left text-teal hover:underline">Open Venmo &rarr;</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-xl p-6 shadow-sm">
+          <h3 class="font-heading text-teal font-bold text-lg mb-4">Recent Activity</h3>
+          <div id="recent-activity" class="space-y-3">
+            <p class="text-gray-400 text-sm italic">Connect Google Sheets to see recent activity.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== CONTACTS TAB ==================== -->
+      <div id="tab-contacts" class="tab-content hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="font-heading text-teal text-2xl font-bold">Contacts</h2>
+          <button onclick="refreshData('contacts')" class="btn-secondary text-xs px-3 py-1.5">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-cream">
+                <tr>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Date</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Name</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Email</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Phone</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Service</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody id="contacts-table-body">
+                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">Connect Google Sheets to view contacts.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== ESTIMATES TAB ==================== -->
+      <div id="tab-estimates" class="tab-content hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="font-heading text-teal text-2xl font-bold">Estimates</h2>
+          <button onclick="refreshData('estimates')" class="btn-secondary text-xs px-3 py-1.5">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-cream">
+                <tr>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Date</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Service</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Sq Ft</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Frequency</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Add-Ons</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Estimate</th>
+                </tr>
+              </thead>
+              <tbody id="estimates-table-body">
+                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">Connect Google Sheets to view estimates.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== CONTRACTS TAB ==================== -->
+      <div id="tab-contracts" class="tab-content hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="font-heading text-teal text-2xl font-bold">Contracts</h2>
+          <button onclick="refreshData('contracts')" class="btn-secondary text-xs px-3 py-1.5">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-cream">
+                <tr>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Date</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Client</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Service</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Frequency</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Media</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody id="contracts-table-body">
+                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">Connect Google Sheets to view contracts.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== INVOICES TAB ==================== -->
+      <div id="tab-invoices" class="tab-content hidden">
+        <h2 class="font-heading text-teal text-2xl font-bold mb-6">Create Invoice</h2>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 sm:p-8 max-w-2xl">
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="form-label">Client Name *</label>
+                <input type="text" id="inv-client-name" class="form-input" placeholder="Client's full name">
+              </div>
+              <div>
+                <label class="form-label">Client Email</label>
+                <input type="email" id="inv-client-email" class="form-input" placeholder="client@email.com">
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Client Address</label>
+              <input type="text" id="inv-client-address" class="form-input" placeholder="Street, City, State ZIP">
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="form-label">Invoice Number</label>
+                <input type="text" id="inv-number" class="form-input" readonly>
+              </div>
+              <div>
+                <label class="form-label">Date of Service</label>
+                <input type="date" id="inv-date" class="form-input">
+              </div>
+            </div>
+
+            <!-- Line Items -->
+            <div>
+              <label class="form-label">Line Items</label>
+              <div id="inv-line-items" class="space-y-2">
+                <!-- Rendered by admin.js -->
+              </div>
+              <button onclick="addInvoiceLineItem()" class="text-sm text-teal hover:underline mt-2">+ Add Line Item</button>
+            </div>
+
+            <!-- Add-ons Quick Add -->
+            <div>
+              <label class="form-label">Quick Add-Ons</label>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="addInvoiceAddon('Dish Washing', 15)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Dishes $15</button>
+                <button onclick="addInvoiceAddon('Oven Cleaning', 50)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Oven $50</button>
+                <button onclick="addInvoiceAddon('Fridge Cleaning', 50)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Fridge $50</button>
+              </div>
+            </div>
+
+            <!-- Total -->
+            <div class="bg-cream rounded-xl p-4 flex justify-between items-center">
+              <span class="font-heading text-teal font-bold text-lg">Total</span>
+              <span id="inv-total" class="font-heading text-rose font-bold text-2xl">$0.00</span>
+            </div>
+
+            <!-- Payment Method -->
+            <div>
+              <label class="form-label">Preferred Payment Method</label>
+              <select id="inv-payment-method" class="form-select">
+                <option value="venmo">Venmo</option>
+                <option value="cashapp">Cash App</option>
+                <option value="cash">Cash</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-6 flex flex-col sm:flex-row gap-3">
+            <button onclick="generateInvoicePDF()" class="btn-primary flex-1">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Download PDF
+            </button>
+            <button onclick="sendInvoicePaymentLink()" class="btn-rose flex-1">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              Copy Payment Link
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SETTINGS TAB ==================== -->
+      <div id="tab-settings" class="tab-content hidden">
+        <h2 class="font-heading text-teal text-2xl font-bold mb-6">Settings</h2>
+
+        <div class="space-y-6 max-w-xl">
+          <!-- Google Sheets Connection -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="font-heading text-teal font-semibold mb-4">Google Sheets Connection</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="form-label">Apps Script URL</label>
+                <input type="url" id="settings-script-url" class="form-input text-sm"
+                  placeholder="https://script.google.com/macros/s/.../exec">
+              </div>
+              <div class="flex gap-3">
+                <button onclick="saveSettings()" class="btn-primary text-xs px-4 py-2">Save</button>
+                <button onclick="testConnection()" class="btn-secondary text-xs px-4 py-2">Test Connection</button>
+              </div>
+              <p id="settings-status" class="text-xs text-gray-400"></p>
+            </div>
+          </div>
+
+          <!-- Change Passcode -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="font-heading text-teal font-semibold mb-4">Change Passcode</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="form-label">Current Passcode</label>
+                <input type="password" id="settings-current-pass" class="form-input">
+              </div>
+              <div>
+                <label class="form-label">New Passcode</label>
+                <input type="password" id="settings-new-pass" class="form-input">
+              </div>
+              <div>
+                <label class="form-label">Confirm New Passcode</label>
+                <input type="password" id="settings-confirm-pass" class="form-input">
+              </div>
+              <button onclick="changePasscode()" class="btn-primary text-xs px-4 py-2">Update Passcode</button>
+              <p id="passcode-status" class="text-xs text-gray-400"></p>
+            </div>
+          </div>
+
+          <!-- Quick Links -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="font-heading text-teal font-semibold mb-4">Quick Links</h3>
+            <div class="space-y-2">
+              <a href="https://venmo.com/bloomshinecleaningLLC" target="_blank" class="block text-sm text-teal hover:underline">Venmo Dashboard &rarr;</a>
+              <a href="https://cash.app/$bloomshinecleanLLC" target="_blank" class="block text-sm text-teal hover:underline">Cash App &rarr;</a>
+              <a href="https://www.instagram.com/bloom_shinecleaning.llc" target="_blank" class="block text-sm text-teal hover:underline">Instagram &rarr;</a>
+              <a href="https://www.facebook.com/beautyfromashescleaningco" target="_blank" class="block text-sm text-teal hover:underline">Facebook &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Admin Tab Styles -->
+  <style>
+    .admin-tab {
+      padding: 0.75rem 1.25rem;
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--color-gray-400);
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+      cursor: pointer;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .admin-tab:hover {
+      color: var(--color-teal);
+    }
+    .admin-tab.active {
+      color: var(--color-teal);
+      border-bottom-color: var(--color-teal);
+      font-weight: 600;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .status-new { background: var(--color-blush); color: var(--color-rose-deep); }
+    .status-contacted { background: var(--color-sage-light); color: var(--color-teal); }
+    .status-booked { background: var(--color-teal); color: white; }
+    .status-completed { background: var(--color-gray-200); color: var(--color-gray-600); }
+  </style>
+
+  <script src="js/sheets.js"></script>
+  <script src="js/invoice.js"></script>
+  <script src="js/admin.js"></script>
+
+</body>
+</html>
