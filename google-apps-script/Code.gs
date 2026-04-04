@@ -32,7 +32,7 @@
  */
 
 // Configuration
-const NOTIFICATION_EMAIL = 'bloom.shinecleaningservices@yahoo.com';
+const NOTIFICATION_EMAIL = 'nickib.bloomandshine@gmail.com';
 const SPREADSHEET_ID = ''; // Set to your Google Sheet ID after creating it
 
 // ============================================

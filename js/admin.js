@@ -80,11 +80,20 @@ function updateUser(email, updates) {
 }
 
 /**
- * Seed default accounts on first run
+ * Seed default accounts on first run, migrate old emails if needed
  */
 async function seedDefaultUsers() {
   const existing = getUsers();
-  if (existing && existing.length > 0) return;
+
+  // Migrate old owner email if present
+  if (existing && existing.length > 0) {
+    const oldOwner = existing.find(u => u.email.toLowerCase() === 'hunger4jesus08@yahoo.com');
+    if (oldOwner) {
+      oldOwner.email = 'nickib.bloomandshine@gmail.com';
+      saveUsers(existing);
+    }
+    return;
+  }
 
   const defaultHash = await sha256('bloom2026');
 
@@ -99,7 +108,7 @@ async function seedDefaultUsers() {
       createdAt: new Date().toISOString()
     },
     {
-      email: 'hunger4jesus08@yahoo.com',
+      email: 'nickib.bloomandshine@gmail.com',
       name: 'Nicki Burnett',
       role: ROLE_OWNER,
       passwordHash: defaultHash,
