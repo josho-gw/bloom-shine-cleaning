@@ -11,6 +11,7 @@ A dynamic single-page website for **Bloom & Shine Cleaning Services LLC**, a Chr
 - **Admin Dashboard** — Multi-user role-based portal with contacts, estimates, contracts, invoicing, and user management
 - **Invoice Generator** — Branded PDF invoices with dynamic Venmo/Cash App payment links
 - **Contact Form** — Submissions logged to Google Sheets CRM with instant email notifications
+- **Finance & Accounting** — General ledger, expense tracking, chart of accounts, auto-ledger from invoice payments, YTD/MTD summaries
 - **Automated Digests** — Daily (7 AM) and weekly (Monday 8 AM) email summaries with follow-up reminders
 - **Online Booking** — Cal.com embed for self-service scheduling
 - **Payment Integration** — Venmo & Cash App QR codes and deep links
@@ -65,9 +66,14 @@ Hosted on GitHub Pages. Pushes to `main` auto-deploy.
 
 ### 2. Google Apps Script (CRM Backend)
 
-Two script files work together. `Setup.gs` provisions the system; `Code.gs` runs it.
+Two script files work together. `Setup.gs` provisions three separate workbooks; `Code.gs` runs the API.
 
-1. Create a **blank** Google Sheet
+Setup creates:
+- **Bloom & Shine — CRM** (Contacts, Estimates, Contracts, Invoices, Activity Log, Dashboard)
+- **Bloom & Shine — Admin** (_Users, _Sessions, _Settings, _Audit — protected)
+- **Bloom & Shine — Financials** (Ledger, Categories, Financial Dashboard)
+
+1. Create a **blank** Google Sheet (this is just a launchpad — Setup creates the real workbooks)
 2. Go to **Extensions → Apps Script**
 3. Create two script files in the editor:
    - Rename the default `Code.gs` and paste the contents of `google-apps-script/Code.gs`

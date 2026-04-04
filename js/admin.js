@@ -11,8 +11,16 @@
 // ============================================
 
 const SESSION_KEY = 'bloomshine_session';
+const DEBUG_KEY = 'bloomshine_debug';
 let currentUser = null;
 let apiUrl = '';
+
+// Toggle debug mode: localStorage.setItem('bloomshine_debug', 'true')
+function isDebug() { return localStorage.getItem(DEBUG_KEY) === 'true'; }
+
+function dbg(label, ...args) {
+  if (isDebug()) console.log(`%c[BS:${label}]`, 'color:#2D5F5D;font-weight:bold', ...args);
+}
 
 // ============================================
 // API HELPER
@@ -21,23 +29,28 @@ let apiUrl = '';
 async function api(action, data = {}) {
   const url = apiUrl || localStorage.getItem('bloomshine_script_url') || '';
   if (!url) {
-    console.warn('[Admin] API URL not configured');
+    dbg('API', 'No URL configured');
     return { result: 'error', code: 'NO_URL', message: 'API not configured. Set the Apps Script URL in Settings.' };
   }
 
   const token = getToken();
+  const startTime = performance.now();
 
   if (data && typeof data === 'object' && Object.keys(data).length > 0) {
     // POST
     const payload = { ...data, action, token };
+    dbg('API', `POST → ${action}`, isDebug() ? payload : '');
     try {
       const res = await fetch(url, {
         method: 'POST',
         body: JSON.stringify(payload),
         headers: { 'Content-Type': 'text/plain' }
       });
-      return await res.json();
+      const result = await res.json();
+      dbg('API', `POST ← ${action} (${Math.round(performance.now() - startTime)}ms)`, result.result, isDebug() ? result : '');
+      return result;
     } catch (err) {
+      dbg('API', `POST ✗ ${action}`, err.message);
       console.error('[Admin] API error:', err);
       return { result: 'error', message: err.message };
     }
@@ -45,10 +58,14 @@ async function api(action, data = {}) {
     // GET
     const params = new URLSearchParams({ action });
     if (token) params.set('token', token);
+    dbg('API', `GET → ${action}`);
     try {
       const res = await fetch(`${url}?${params}`);
-      return await res.json();
+      const result = await res.json();
+      dbg('API', `GET ← ${action} (${Math.round(performance.now() - startTime)}ms)`, result.result);
+      return result;
     } catch (err) {
+      dbg('API', `GET ✗ ${action}`, err.message);
       console.error('[Admin] API error:', err);
       return { result: 'error', message: err.message };
     }
@@ -286,7 +303,8 @@ function showError(el, msg) {
 // ============================================
 
 function switchTab(tabName) {
-  if (tabName === 'users' && currentUser && currentUser.role !== 'developer' && currentUser.role !== 'owner') return;
+  const managerTabs = ['users', 'finance'];
+  if (managerTabs.includes(tabName) && currentUser && currentUser.role !== 'developer' && currentUser.role !== 'owner') return;
 
   document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -299,6 +317,7 @@ function switchTab(tabName) {
 
   if (tabName === 'invoices') initInvoiceTab();
   if (tabName === 'users') loadUsers();
+  if (tabName === 'finance') loadFinanceData();
 }
 
 // ============================================
@@ -711,6 +730,215 @@ function openCreateInvoice() {
 
 function closeCreateInvoice() {
   document.getElementById('create-invoice-form').classList.add('hidden');
+}
+
+// ============================================
+// INVOICE FILTERS
+// ============================================
+
+let currentInvoiceFilter = 'all';
+
+function filterInvoices(filter) {
+  currentInvoiceFilter = filter;
+
+  // Update active button
+  document.querySelectorAll('.inv-filter').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+
+  // Re-render with filter
+  const data = window._crmData;
+  if (!data || !data.invoices) return;
+
+  let filtered = data.invoices;
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  if (filter === 'unpaid') {
+    filtered = filtered.filter(inv => inv.Status !== 'Paid' && inv.Status !== 'Void');
+  } else if (filter === 'overdue') {
+    filtered = filtered.filter(inv => {
+      if (inv.Status === 'Paid' || inv.Status === 'Void') return false;
+      const invDate = new Date(inv.Date);
+      return invDate <= thirtyDaysAgo;
+    });
+  } else if (filter === 'paid') {
+    filtered = filtered.filter(inv => inv.Status === 'Paid');
+  }
+
+  renderTable('invoices', filtered, ['Invoice #', 'Date', 'Client Name', 'Service', 'Amount', 'Status']);
+}
+
+// ============================================
+// FINANCE & ACCOUNTING
+// ============================================
+
+let finCategories = [];
+let finLedger = [];
+let currentLedgerFilter = 'all';
+
+async function loadFinanceData() {
+  const [summaryRes, ledgerRes, catRes] = await Promise.all([
+    api('getFinSummary'),
+    api('getLedger'),
+    api('getCategories')
+  ]);
+
+  // Summary cards
+  if (summaryRes.result === 'success') {
+    setText('fin-ytd-income', '$' + (summaryRes.ytd.income || 0).toFixed(2));
+    setText('fin-ytd-expense', '$' + (summaryRes.ytd.expense || 0).toFixed(2));
+    setText('fin-ytd-net', '$' + (summaryRes.ytd.net || 0).toFixed(2));
+    setText('fin-mtd-net', '$' + (summaryRes.mtd.net || 0).toFixed(2));
+
+    // Color net values
+    const ytdNetEl = document.getElementById('fin-ytd-net');
+    const mtdNetEl = document.getElementById('fin-mtd-net');
+    if (ytdNetEl) ytdNetEl.style.color = summaryRes.ytd.net >= 0 ? '#155724' : '#721C24';
+    if (mtdNetEl) mtdNetEl.style.color = summaryRes.mtd.net >= 0 ? '#155724' : '#721C24';
+
+    // Expense breakdown
+    const breakdown = document.getElementById('fin-expense-breakdown');
+    const cats = summaryRes.expenseByCategory || {};
+    const catKeys = Object.keys(cats).sort((a, b) => cats[b] - cats[a]);
+    if (catKeys.length > 0) {
+      breakdown.innerHTML = catKeys.map(k => `
+        <div class="flex justify-between items-center bg-cream rounded-lg px-3 py-2">
+          <span class="text-sm text-gray-600">${esc(k)}</span>
+          <span class="font-semibold text-sm" style="color: #721C24;">$${cats[k].toFixed(2)}</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Ledger
+  if (ledgerRes.result === 'success') {
+    finLedger = ledgerRes.data || [];
+    renderLedger();
+  }
+
+  // Categories
+  if (catRes.result === 'success') {
+    finCategories = (catRes.data || []).filter(c => c.Active === 'Yes');
+    renderCategoriesList();
+    updateFinCategories();
+  }
+
+  // Set default date for new entry
+  const dateEl = document.getElementById('fin-date');
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+}
+
+function renderLedger() {
+  const tbody = document.getElementById('ledger-table-body');
+  if (!tbody) return;
+
+  let rows = finLedger;
+  if (currentLedgerFilter !== 'all') {
+    rows = rows.filter(r => r.Type === currentLedgerFilter);
+  }
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="px-3 py-8 text-center text-gray-400 italic">No entries.</td></tr>';
+    return;
+  }
+
+  // Newest first for display
+  const sorted = [...rows].sort((a, b) => new Date(b.Date || 0) - new Date(a.Date || 0));
+
+  tbody.innerHTML = sorted.map(r => {
+    const isIncome = r.Type === 'Income';
+    const amount = isIncome ? (Number(r.Credit) || 0) : (Number(r.Debit) || 0);
+    const amountColor = isIncome ? '#155724' : '#721C24';
+    const typeBg = isIncome ? '#D4EDDA' : '#F8D7DA';
+    const typeFg = isIncome ? '#155724' : '#721C24';
+
+    return `
+      <tr class="border-t border-gray-100 hover:bg-cream/50">
+        <td class="px-3 py-2 text-xs text-gray-500">${formatDate(r.Date)}</td>
+        <td class="px-3 py-2"><span class="text-xs font-bold px-2 py-0.5 rounded" style="background:${typeBg};color:${typeFg};">${esc(r.Type)}</span></td>
+        <td class="px-3 py-2 text-sm">${esc(r.Category)}</td>
+        <td class="px-3 py-2 text-sm text-gray-600">${esc(r.Description)}</td>
+        <td class="px-3 py-2 text-sm text-right font-semibold" style="color:${amountColor};">${isIncome ? '+' : '-'}$${amount.toFixed(2)}</td>
+        <td class="px-3 py-2 text-sm text-right text-gray-500">$${(Number(r.Balance) || 0).toFixed(2)}</td>
+      </tr>`;
+  }).join('');
+}
+
+function filterLedger(filter) {
+  currentLedgerFilter = filter;
+  document.querySelectorAll('.ledger-filter').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+  renderLedger();
+}
+
+function updateFinCategories() {
+  const typeEl = document.getElementById('fin-type');
+  const catEl = document.getElementById('fin-category');
+  if (!typeEl || !catEl) return;
+
+  const selectedType = typeEl.value;
+  const filtered = finCategories.filter(c => c.Type === selectedType);
+
+  catEl.innerHTML = '<option value="">Select...</option>' +
+    filtered.map(c => `<option value="${esc(c.Category)}">${esc(c.Category)}</option>`).join('');
+}
+
+function renderCategoriesList() {
+  const container = document.getElementById('fin-categories-list');
+  if (!container) return;
+
+  if (finCategories.length === 0) {
+    container.innerHTML = '<p class="text-gray-400 text-sm italic">No categories.</p>';
+    return;
+  }
+
+  container.innerHTML = finCategories.map(c => {
+    const badge = c.Type === 'Income'
+      ? '<span class="text-xs px-1.5 py-0.5 rounded" style="background:#D4EDDA;color:#155724;">Income</span>'
+      : '<span class="text-xs px-1.5 py-0.5 rounded" style="background:#F8D7DA;color:#721C24;">Expense</span>';
+    return `<div class="flex justify-between items-center py-1 px-2 rounded hover:bg-cream">${badge} <span class="text-sm flex-1 ml-2">${esc(c.Category)}</span></div>`;
+  }).join('');
+}
+
+async function submitLedgerEntry(e) {
+  e.preventDefault();
+  const status = document.getElementById('fin-entry-status');
+  const type = document.getElementById('fin-type').value;
+  const category = document.getElementById('fin-category').value;
+  const amount = document.getElementById('fin-amount').value;
+  const date = document.getElementById('fin-date').value;
+  const description = document.getElementById('fin-description').value;
+  const payment = document.getElementById('fin-payment').value;
+  const notes = document.getElementById('fin-notes').value;
+
+  if (!category || !amount) { showError(status, 'Category and amount required.'); return; }
+
+  const result = await api('addLedgerEntry', { type, category, amount, date, description, paymentMethod: payment, notes });
+
+  if (result.result === 'success') {
+    status.textContent = 'Transaction recorded!';
+    status.style.color = 'var(--color-teal)';
+    // Reset form
+    document.getElementById('fin-amount').value = '';
+    document.getElementById('fin-description').value = '';
+    document.getElementById('fin-notes').value = '';
+    loadFinanceData();
+  } else {
+    showError(status, result.message || 'Failed.');
+  }
+}
+
+async function addNewCategory(e) {
+  e.preventDefault();
+  const name = document.getElementById('fin-new-cat-name').value.trim();
+  const type = document.getElementById('fin-new-cat-type').value;
+  if (!name) return;
+
+  const result = await api('addCategory', { name, type, description: '' });
+  if (result.result === 'success') {
+    document.getElementById('fin-new-cat-name').value = '';
+    loadFinanceData();
+  } else {
+    alert(result.message || 'Failed.');
+  }
 }
 
 // ============================================

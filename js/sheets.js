@@ -6,11 +6,17 @@
  * which serves as the CRM backend (Google Sheets + email notifications).
  */
 
-// Replace with your deployed Google Apps Script web app URL
+// URL configured via admin dashboard Settings tab
 const SHEETS_CONFIG = {
-  scriptUrl: '', // Set after deploying Code.gs
-  enabled: false // Set to true once the Apps Script is deployed
+  scriptUrl: '',
+  enabled: false
 };
+
+// Load from admin settings if available
+(function() {
+  const saved = localStorage.getItem('bloomshine_script_url');
+  if (saved) { SHEETS_CONFIG.scriptUrl = saved; SHEETS_CONFIG.enabled = true; }
+})();
 
 /**
  * Submit data to Google Apps Script backend
@@ -20,7 +26,6 @@ const SHEETS_CONFIG = {
  */
 async function submitToSheet(data, source = 'contact') {
   if (!SHEETS_CONFIG.enabled || !SHEETS_CONFIG.scriptUrl) {
-    console.log('[Sheets] Backend not configured. Data would be submitted:', { ...data, source });
     return { result: 'skipped', reason: 'Backend not configured' };
   }
 
@@ -38,7 +43,6 @@ async function submitToSheet(data, source = 'contact') {
     });
 
     const result = await response.json();
-    console.log('[Sheets] Submission successful:', result);
     return result;
   } catch (error) {
     console.error('[Sheets] Submission error:', error);

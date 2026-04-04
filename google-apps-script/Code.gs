@@ -27,63 +27,89 @@ function fin_()   { return SpreadsheetApp.openById(getProp_('FINANCIALS_SPREADSH
 // ============================================
 
 function doGet(e) {
+  var action = p_(e, 'action', 'ping');
+  var start = new Date();
   try {
-    var action = p_(e, 'action', 'ping');
     if (action === 'ping') return j_({ result: 'pong' });
 
     var session = validateSession_(p_(e, 'token'));
-    if (!session) return j_({ result: 'error', code: 'UNAUTHORIZED', message: 'Invalid or expired session' });
-
-    switch (action) {
-      case 'getAll':        return j_(getAllData_(session));
-      case 'getContacts':   return j_({ result: 'success', data: rows_(crm_(), 'Contacts') });
-      case 'getEstimates':  return j_({ result: 'success', data: rows_(crm_(), 'Estimates') });
-      case 'getContracts':  return j_({ result: 'success', data: rows_(crm_(), 'Contracts') });
-      case 'getInvoices':   return j_({ result: 'success', data: rows_(crm_(), 'Invoices') });
-      case 'getActivity':   return j_({ result: 'success', data: rows_(crm_(), 'Activity Log') });
-      case 'getUsers':      return j_(getUsers_(session));
-      case 'getSettings':   return j_(getSettings_(session));
-      case 'getLedger':     return j_(getLedger_(session));
-      case 'getCategories': return j_(getCategories_(session));
-      case 'getFinSummary': return j_(getFinSummary_(session));
-      default:              return j_({ result: 'error', message: 'Unknown action' });
+    if (!session) {
+      log_('GET', action, 'UNAUTHORIZED', start);
+      return j_({ result: 'error', code: 'UNAUTHORIZED', message: 'Invalid or expired session' });
     }
-  } catch (err) { return j_({ result: 'error', message: err.toString() }); }
+
+    var result;
+    switch (action) {
+      case 'getAll':        result = getAllData_(session); break;
+      case 'getContacts':   result = { result: 'success', data: rows_(crm_(), 'Contacts') }; break;
+      case 'getEstimates':  result = { result: 'success', data: rows_(crm_(), 'Estimates') }; break;
+      case 'getContracts':  result = { result: 'success', data: rows_(crm_(), 'Contracts') }; break;
+      case 'getInvoices':   result = { result: 'success', data: rows_(crm_(), 'Invoices') }; break;
+      case 'getActivity':   result = { result: 'success', data: rows_(crm_(), 'Activity Log') }; break;
+      case 'getUsers':      result = getUsers_(session); break;
+      case 'getSettings':   result = getSettings_(session); break;
+      case 'getLedger':     result = getLedger_(session); break;
+      case 'getCategories': result = getCategories_(session); break;
+      case 'getFinSummary': result = getFinSummary_(session); break;
+      default:              result = { result: 'error', message: 'Unknown action: ' + action };
+    }
+    log_('GET', action, result.result, start, session.email);
+    return j_(result);
+  } catch (err) {
+    logError_('GET', action, err, start);
+    return j_({ result: 'error', message: err.toString() });
+  }
 }
 
 function doPost(e) {
+  var start = new Date();
+  var action = 'unknown';
   try {
     var data = JSON.parse(e.postData.contents);
-    var action = data.action || data.source || 'contact';
+    action = data.action || data.source || 'contact';
 
-    // Public
-    if (action === 'contact')  return j_(handleContact_(data));
-    if (action === 'estimate') return j_(handleEstimate_(data));
-    if (action === 'contract') return j_(handleContract_(data));
-
-    // Auth (no session)
-    if (action === 'login')         return j_(handleLogin_(data));
-    if (action === 'forgot')        return j_(handleForgotPassword_(data));
-    if (action === 'resetPassword') return j_(handleResetPassword_(data));
-
-    // Protected
-    var session = validateSession_(data.token);
-    if (!session) return j_({ result: 'error', code: 'UNAUTHORIZED', message: 'Invalid or expired session' });
-
-    switch (action) {
-      case 'logout':          return j_(handleLogout_(data, session));
-      case 'changePassword':  return j_(handleChangePassword_(data, session));
-      case 'updateRow':       return j_(handleUpdateRow_(data, session));
-      case 'deleteRow':       return j_(handleDeleteRow_(data, session));
-      case 'addInvoice':      return j_(handleAddInvoice_(data, session));
-      case 'addUser':         return j_(handleAddUser_(data, session));
-      case 'removeUser':      return j_(handleRemoveUser_(data, session));
-      case 'resetUserPw':     return j_(handleResetUserPw_(data, session));
-      case 'addLedgerEntry':  return j_(handleAddLedgerEntry_(data, session));
-      case 'addCategory':     return j_(handleAddCategory_(data, session));
-      default:                return j_({ result: 'error', message: 'Unknown action' });
+    // Public endpoints
+    var publicActions = { contact: handleContact_, estimate: handleEstimate_, contract: handleContract_ };
+    if (publicActions[action]) {
+      var result = publicActions[action](data);
+      log_('POST', action, result.result, start, data.email || 'public');
+      return j_(result);
     }
-  } catch (err) { return j_({ result: 'error', message: err.toString() }); }
+
+    // Auth endpoints (no session)
+    var authActions = { login: handleLogin_, forgot: handleForgotPassword_, resetPassword: handleResetPassword_ };
+    if (authActions[action]) {
+      var result = authActions[action](data);
+      log_('POST', action, result.result, start, data.email || 'auth');
+      return j_(result);
+    }
+
+    // Protected endpoints
+    var session = validateSession_(data.token);
+    if (!session) {
+      log_('POST', action, 'UNAUTHORIZED', start);
+      return j_({ result: 'error', code: 'UNAUTHORIZED', message: 'Invalid or expired session' });
+    }
+
+    var handlers = {
+      logout: handleLogout_, changePassword: handleChangePassword_,
+      updateRow: handleUpdateRow_, deleteRow: handleDeleteRow_, addInvoice: handleAddInvoice_,
+      addUser: handleAddUser_, removeUser: handleRemoveUser_, resetUserPw: handleResetUserPw_,
+      addLedgerEntry: handleAddLedgerEntry_, addCategory: handleAddCategory_
+    };
+
+    if (handlers[action]) {
+      var result = handlers[action](data, session);
+      log_('POST', action, result.result, start, session.email);
+      return j_(result);
+    }
+
+    log_('POST', action, 'UNKNOWN_ACTION', start);
+    return j_({ result: 'error', message: 'Unknown action: ' + action });
+  } catch (err) {
+    logError_('POST', action, err, start);
+    return j_({ result: 'error', message: err.toString() });
+  }
 }
 
 // ============================================
@@ -636,6 +662,19 @@ function genResetCode_() { var c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',s=''; for(va
 function notify_(subject,body) { var e=getProp_('NOTIFICATION_EMAIL'); if(e)MailApp.sendEmail(e,subject,body); }
 function activityCRM_(type,summary,details) { try{crm_().getSheetByName('Activity Log').appendRow([new Date(),type,summary,details]);}catch(e){} }
 function audit_(event,actor) { try{admin_().getSheetByName('_Audit').appendRow([new Date(),event,'',actor||Session.getEffectiveUser().getEmail()]);}catch(e){} }
+
+// Request logging
+function log_(method, action, result, startTime, actor) {
+  var ms = new Date() - startTime;
+  Logger.log('[' + method + '] ' + action + ' → ' + result + ' (' + ms + 'ms)' + (actor ? ' by ' + actor : ''));
+}
+function logError_(method, action, err, startTime) {
+  var ms = new Date() - startTime;
+  var msg = '[' + method + '] ' + action + ' ✗ ERROR (' + ms + 'ms): ' + err.toString();
+  Logger.log(msg);
+  // Write errors to audit for visibility
+  try { admin_().getSheetByName('_Audit').appendRow([new Date(), 'ERROR: ' + method + ' ' + action, err.toString(), 'system']); } catch(e) {}
+}
 function countSince_(ss,tab,since) { var s=ss.getSheetByName(tab); if(!s||s.getLastRow()<=1)return 0; var t=s.getRange(2,1,s.getLastRow()-1,1).getValues(),c=0; t.forEach(function(r){if(r[0]&&new Date(r[0])>=since)c++;}); return c; }
 function getFollowUps_(ss) { var s=ss.getSheetByName('Contacts'); if(!s||s.getLastRow()<=1)return[]; var d=s.getRange(2,1,s.getLastRow()-1,9).getValues(),t=new Date();t.setHours(0,0,0,0);var n=new Date(t);n.setDate(n.getDate()+1);var r=[]; d.forEach(function(v){if(v[8]&&new Date(v[8])>=t&&new Date(v[8])<n&&v[6]!=='Completed'&&v[6]!=='Lost')r.push({name:v[1],phone:v[3]});}); return r; }
 function getNewLeads_(ss) { var s=ss.getSheetByName('Contacts'); if(!s||s.getLastRow()<=1)return[]; var d=s.getRange(2,1,s.getLastRow()-1,7).getValues(),r=[]; d.forEach(function(v){if(v[6]==='New')r.push({name:v[1],phone:v[3]});}); return r; }

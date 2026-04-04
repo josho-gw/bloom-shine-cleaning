@@ -177,6 +177,7 @@
           <button onclick="switchTab('estimates')" class="admin-tab" data-tab="estimates">Estimates</button>
           <button onclick="switchTab('contracts')" class="admin-tab" data-tab="contracts">Contracts</button>
           <button onclick="switchTab('invoices')" class="admin-tab" data-tab="invoices">Invoices</button>
+          <button onclick="switchTab('finance')" class="admin-tab" data-tab="finance" data-role="manager">Finance</button>
           <button onclick="switchTab('users')" class="admin-tab" data-tab="users" data-role="manager">Users</button>
           <button onclick="switchTab('settings')" class="admin-tab" data-tab="settings">Settings</button>
         </nav>
@@ -333,6 +334,14 @@
               Create Invoice
             </button>
           </div>
+        </div>
+
+        <!-- Invoice Filters -->
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button onclick="filterInvoices('all')" class="inv-filter active text-xs px-3 py-1.5 rounded-full border border-gray-200 font-medium transition-colors" data-filter="all">All</button>
+          <button onclick="filterInvoices('unpaid')" class="inv-filter text-xs px-3 py-1.5 rounded-full border border-gray-200 font-medium transition-colors" data-filter="unpaid">Unpaid</button>
+          <button onclick="filterInvoices('overdue')" class="inv-filter text-xs px-3 py-1.5 rounded-full border border-gray-200 font-medium transition-colors" data-filter="overdue">30+ Days</button>
+          <button onclick="filterInvoices('paid')" class="inv-filter text-xs px-3 py-1.5 rounded-full border border-gray-200 font-medium transition-colors" data-filter="paid">Paid</button>
         </div>
 
         <!-- Invoice List -->
@@ -539,6 +548,148 @@
         </div>
       </div>
 
+      <!-- ==================== FINANCE TAB (Owner + Developer) ==================== -->
+      <div id="tab-finance" class="tab-content hidden" data-role="manager">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="font-heading text-teal text-2xl font-bold">Finance &amp; Accounting</h2>
+          <button onclick="loadFinanceData()" class="btn-secondary text-xs px-3 py-1.5">Refresh</button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="bg-white rounded-xl p-5 shadow-sm">
+            <p class="text-gray-400 text-xs font-heading uppercase tracking-wider mb-1">YTD Income</p>
+            <p id="fin-ytd-income" class="text-2xl font-bold" style="color: #155724;">$0.00</p>
+          </div>
+          <div class="bg-white rounded-xl p-5 shadow-sm">
+            <p class="text-gray-400 text-xs font-heading uppercase tracking-wider mb-1">YTD Expenses</p>
+            <p id="fin-ytd-expense" class="text-2xl font-bold" style="color: #721C24;">$0.00</p>
+          </div>
+          <div class="bg-white rounded-xl p-5 shadow-sm">
+            <p class="text-gray-400 text-xs font-heading uppercase tracking-wider mb-1">YTD Net Income</p>
+            <p id="fin-ytd-net" class="text-2xl font-bold text-teal">$0.00</p>
+          </div>
+          <div class="bg-white rounded-xl p-5 shadow-sm">
+            <p class="text-gray-400 text-xs font-heading uppercase tracking-wider mb-1">This Month Net</p>
+            <p id="fin-mtd-net" class="text-2xl font-bold text-teal">$0.00</p>
+          </div>
+        </div>
+
+        <!-- Expense Breakdown -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <h3 class="font-heading text-teal font-semibold mb-4">Expense Breakdown (YTD)</h3>
+          <div id="fin-expense-breakdown" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <p class="text-gray-400 text-sm italic col-span-full">No expenses recorded yet.</p>
+          </div>
+        </div>
+
+        <!-- Add Entry + Ledger -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          <!-- Add Entry Form -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="font-heading text-teal font-semibold mb-4">Record Transaction</h3>
+            <form onsubmit="submitLedgerEntry(event)">
+              <div class="space-y-3">
+                <div>
+                  <label class="form-label">Type *</label>
+                  <select id="fin-type" class="form-select" onchange="updateFinCategories()">
+                    <option value="Expense">Expense</option>
+                    <option value="Income">Income</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Category *</label>
+                  <select id="fin-category" class="form-select">
+                    <option value="">Select...</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Amount *</label>
+                  <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                    <input type="number" id="fin-amount" class="form-input pl-7" placeholder="0.00" step="0.01" min="0" required>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label">Date</label>
+                  <input type="date" id="fin-date" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">Description</label>
+                  <input type="text" id="fin-description" class="form-input" placeholder="What was this for?">
+                </div>
+                <div>
+                  <label class="form-label">Payment Method</label>
+                  <select id="fin-payment" class="form-select">
+                    <option value="">Select...</option>
+                    <option value="Venmo">Venmo</option>
+                    <option value="Cash App">Cash App</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Check">Check</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Notes</label>
+                  <input type="text" id="fin-notes" class="form-input" placeholder="Optional notes">
+                </div>
+              </div>
+              <p id="fin-entry-status" class="text-xs mt-3">&nbsp;</p>
+              <button type="submit" class="btn-primary w-full mt-3 text-xs">Record Transaction</button>
+            </form>
+          </div>
+
+          <!-- Ledger Table -->
+          <div class="lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-heading text-teal font-semibold">Ledger</h3>
+              <div class="flex gap-2">
+                <button onclick="filterLedger('all')" class="ledger-filter active text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="all">All</button>
+                <button onclick="filterLedger('Income')" class="ledger-filter text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="Income">Income</button>
+                <button onclick="filterLedger('Expense')" class="ledger-filter text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="Expense">Expense</button>
+              </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-cream">
+                    <tr>
+                      <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Date</th>
+                      <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Type</th>
+                      <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Category</th>
+                      <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Description</th>
+                      <th class="text-right px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Amount</th>
+                      <th class="text-right px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ledger-table-body">
+                    <tr><td colspan="6" class="px-3 py-8 text-center text-gray-400 italic">No entries yet.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manage Categories -->
+        <div class="mt-8 bg-white rounded-xl shadow-sm p-6 max-w-md">
+          <h3 class="font-heading text-teal font-semibold mb-4">Manage Categories</h3>
+          <div id="fin-categories-list" class="space-y-1 mb-4 max-h-48 overflow-y-auto">
+            <p class="text-gray-400 text-sm italic">Loading...</p>
+          </div>
+          <form onsubmit="addNewCategory(event)" class="flex gap-2">
+            <input type="text" id="fin-new-cat-name" class="form-input flex-1 text-sm" placeholder="New category name">
+            <select id="fin-new-cat-type" class="form-select w-28 text-sm">
+              <option value="Expense">Expense</option>
+              <option value="Income">Income</option>
+            </select>
+            <button type="submit" class="btn-primary text-xs px-3 py-1.5">Add</button>
+          </form>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -611,6 +762,16 @@
     .status-contacted { background: var(--color-sage-light); color: var(--color-teal); }
     .status-booked { background: var(--color-teal); color: white; }
     .status-completed { background: var(--color-gray-200); color: var(--color-gray-600); }
+    /* Filter button styles */
+    .inv-filter.active, .ledger-filter.active {
+      background: var(--color-teal);
+      color: white;
+      border-color: var(--color-teal);
+    }
+    .inv-filter:not(.active):hover, .ledger-filter:not(.active):hover {
+      border-color: var(--color-sage);
+      background: var(--color-sage-light);
+    }
   </style>
 
   <script src="js/sheets.js"></script>
