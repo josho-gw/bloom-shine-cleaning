@@ -1,594 +1,441 @@
 /**
  * ============================================================
- * Bloom & Shine Cleaning Services — CRM Backend
+ * Bloom & Shine Cleaning Services — CRM Backend API
  * ============================================================
  *
- * SETUP: Run setup() once from the Apps Script editor.
- * It builds the entire spreadsheet structure automatically.
+ * All configuration lives in Script Properties (set by Setup.gs).
+ * All auth data lives in protected _Users/_Sessions sheets.
+ * All business data lives in CRM sheets.
  *
- * Then: Deploy > New deployment > Web app
- *   - Execute as: Me
- *   - Who has access: Anyone
- *
- * Copy the deployment URL into the admin dashboard Settings tab.
+ * PUBLIC endpoints (no auth): contact, estimate, contract submissions
+ * PROTECTED endpoints (session token required): CRUD, user management
  * ============================================================
  */
 
 // ============================================
-// CONFIGURATION
-// ============================================
-
-// ---- CONFIGURE BEFORE DEPLOYMENT ----
-// Set notificationEmail and devEmail before running setup().
-const CONFIG = {
-  sheetName: 'Bloom & Shine — CRM',
-  notificationEmail: 'owner@example.com',   // Owner's Gmail (receives notifications + digests)
-  devEmail: 'developer@example.com',         // Developer's email (shared access to sheet)
-  timezone: 'America/New_York',
-  tabs: {
-    dashboard: 'Dashboard',
-    contacts: 'Contacts',
-    estimates: 'Estimates',
-    contracts: 'Contracts',
-    invoices: 'Invoices',
-    activityLog: 'Activity Log'
-  },
-  colors: {
-    teal: '#2D5F5D',
-    sage: '#B7C9A8',
-    blush: '#F2D7D9',
-    cream: '#FDF8F0',
-    rose: '#D4848A',
-    forest: '#1B3A36',
-    white: '#FFFFFF',
-    headerText: '#FFFFFF'
-  }
-};
-
-// ============================================
-// SETUP — Run this once
-// ============================================
-
-function setup() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  ss.rename(CONFIG.sheetName);
-
-  // Build all tabs
-  setupContactsTab(ss);
-  setupEstimatesTab(ss);
-  setupContractsTab(ss);
-  setupInvoicesTab(ss);
-  setupActivityLogTab(ss);
-  setupDashboardTab(ss);
-
-  // Remove default Sheet1 if it exists
-  const defaultSheet = ss.getSheetByName('Sheet1');
-  if (defaultSheet && ss.getSheets().length > 1) {
-    ss.deleteSheet(defaultSheet);
-  }
-
-  // Move Dashboard to first position
-  const dashboard = ss.getSheetByName(CONFIG.tabs.dashboard);
-  if (dashboard) ss.setActiveSheet(dashboard);
-  if (dashboard) ss.moveActiveSheet(1);
-
-  // Share with developer
-  try {
-    ss.addEditor(CONFIG.devEmail);
-  } catch (e) {
-    Logger.log('Could not share with dev: ' + e.message);
-  }
-
-  // Set up daily digest trigger
-  clearTriggers_();
-  ScriptApp.newTrigger('sendDailyDigest')
-    .timeBased()
-    .atHour(7)
-    .everyDays(1)
-    .inTimezone(CONFIG.timezone)
-    .create();
-
-  // Set up weekly summary trigger (Monday 8am)
-  ScriptApp.newTrigger('sendWeeklySummary')
-    .timeBased()
-    .onWeekDay(ScriptApp.WeekDay.MONDAY)
-    .atHour(8)
-    .inTimezone(CONFIG.timezone)
-    .create();
-
-  Logger.log('✅ Setup complete! Now deploy as a web app.');
-  SpreadsheetApp.getUi().alert(
-    '✅ Setup Complete!\n\n' +
-    'Your CRM is ready. Next step:\n\n' +
-    '1. Click Deploy → New deployment\n' +
-    '2. Select type: Web app\n' +
-    '3. Execute as: Me\n' +
-    '4. Who has access: Anyone\n' +
-    '5. Click Deploy and copy the URL\n' +
-    '6. Paste it in your admin dashboard Settings\n\n' +
-    'Shared with: ' + CONFIG.devEmail
-  );
-}
-
-function clearTriggers_() {
-  ScriptApp.getProjectTriggers().forEach(function(trigger) {
-    ScriptApp.deleteTrigger(trigger);
-  });
-}
-
-// ============================================
-// TAB BUILDERS
-// ============================================
-
-function setupContactsTab(ss) {
-  var sheet = getOrCreateSheet_(ss, CONFIG.tabs.contacts);
-  var headers = ['Timestamp', 'Name', 'Email', 'Phone', 'Service Interest', 'Message', 'Status', 'Notes', 'Follow-Up Date'];
-
-  sheet.clear();
-  sheet.appendRow(headers);
-  formatHeaderRow_(sheet, headers.length);
-
-  // Column widths
-  sheet.setColumnWidth(1, 140);  // Timestamp
-  sheet.setColumnWidth(2, 160);  // Name
-  sheet.setColumnWidth(3, 220);  // Email
-  sheet.setColumnWidth(4, 130);  // Phone
-  sheet.setColumnWidth(5, 160);  // Service
-  sheet.setColumnWidth(6, 300);  // Message
-  sheet.setColumnWidth(7, 100);  // Status
-  sheet.setColumnWidth(8, 200);  // Notes
-  sheet.setColumnWidth(9, 120);  // Follow-Up
-
-  // Status dropdown validation
-  var statusRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['New', 'Contacted', 'Quoted', 'Booked', 'Completed', 'Lost'], true)
-    .setAllowInvalid(false)
-    .build();
-  sheet.getRange('G2:G1000').setDataValidation(statusRule);
-
-  // Conditional formatting for status
-  addStatusConditionalFormatting_(sheet, 7);
-
-  // Follow-up date formatting
-  sheet.getRange('I2:I1000').setNumberFormat('MM/dd/yyyy');
-
-  // Freeze header row
-  sheet.setFrozenRows(1);
-
-  // Timestamp format
-  sheet.getRange('A2:A1000').setNumberFormat('MM/dd/yyyy hh:mm a');
-}
-
-function setupEstimatesTab(ss) {
-  var sheet = getOrCreateSheet_(ss, CONFIG.tabs.estimates);
-  var headers = ['Timestamp', 'Service', 'Sq Ft', 'Frequency', 'Add-Ons', 'Low Estimate', 'High Estimate', 'Converted'];
-
-  sheet.clear();
-  sheet.appendRow(headers);
-  formatHeaderRow_(sheet, headers.length);
-
-  sheet.setColumnWidth(1, 140);
-  sheet.setColumnWidth(2, 180);
-  sheet.setColumnWidth(3, 140);
-  sheet.setColumnWidth(4, 120);
-  sheet.setColumnWidth(5, 200);
-  sheet.setColumnWidth(6, 110);
-  sheet.setColumnWidth(7, 110);
-  sheet.setColumnWidth(8, 100);
-
-  // Currency formatting
-  sheet.getRange('F2:G1000').setNumberFormat('$#,##0');
-
-  // Converted checkbox
-  sheet.getRange('H2:H1000').insertCheckboxes();
-
-  sheet.setFrozenRows(1);
-  sheet.getRange('A2:A1000').setNumberFormat('MM/dd/yyyy hh:mm a');
-}
-
-function setupContractsTab(ss) {
-  var sheet = getOrCreateSheet_(ss, CONFIG.tabs.contracts);
-  var headers = ['Timestamp', 'Name', 'Email', 'Phone', 'Address', 'Service', 'Frequency', 'Media Release', 'Signed', 'Signed Date', 'Status', 'Notes'];
-
-  sheet.clear();
-  sheet.appendRow(headers);
-  formatHeaderRow_(sheet, headers.length);
-
-  sheet.setColumnWidth(1, 140);
-  sheet.setColumnWidth(2, 160);
-  sheet.setColumnWidth(3, 220);
-  sheet.setColumnWidth(4, 130);
-  sheet.setColumnWidth(5, 250);
-  sheet.setColumnWidth(6, 180);
-  sheet.setColumnWidth(7, 110);
-  sheet.setColumnWidth(8, 110);
-  sheet.setColumnWidth(9, 80);
-  sheet.setColumnWidth(10, 120);
-  sheet.setColumnWidth(11, 100);
-  sheet.setColumnWidth(12, 200);
-
-  // Status dropdown
-  var statusRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['New', 'Active', 'Paused', 'Terminated', 'Completed'], true)
-    .setAllowInvalid(false)
-    .build();
-  sheet.getRange('K2:K1000').setDataValidation(statusRule);
-
-  addStatusConditionalFormatting_(sheet, 11);
-
-  sheet.setFrozenRows(1);
-  sheet.getRange('A2:A1000').setNumberFormat('MM/dd/yyyy hh:mm a');
-  sheet.getRange('J2:J1000').setNumberFormat('MM/dd/yyyy');
-}
-
-function setupInvoicesTab(ss) {
-  var sheet = getOrCreateSheet_(ss, CONFIG.tabs.invoices);
-  var headers = ['Invoice #', 'Date', 'Client Name', 'Client Email', 'Service', 'Amount', 'Payment Method', 'Status', 'Paid Date', 'Notes'];
-
-  sheet.clear();
-  sheet.appendRow(headers);
-  formatHeaderRow_(sheet, headers.length);
-
-  sheet.setColumnWidth(1, 130);
-  sheet.setColumnWidth(2, 110);
-  sheet.setColumnWidth(3, 160);
-  sheet.setColumnWidth(4, 220);
-  sheet.setColumnWidth(5, 180);
-  sheet.setColumnWidth(6, 100);
-  sheet.setColumnWidth(7, 130);
-  sheet.setColumnWidth(8, 100);
-  sheet.setColumnWidth(9, 110);
-  sheet.setColumnWidth(10, 200);
-
-  // Currency
-  sheet.getRange('F2:F1000').setNumberFormat('$#,##0.00');
-
-  // Payment method dropdown
-  var payRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['Venmo', 'Cash App', 'Cash'], true)
-    .setAllowInvalid(false)
-    .build();
-  sheet.getRange('G2:G1000').setDataValidation(payRule);
-
-  // Invoice status dropdown
-  var statusRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['Draft', 'Sent', 'Paid', 'Overdue', 'Void'], true)
-    .setAllowInvalid(false)
-    .build();
-  sheet.getRange('H2:H1000').setDataValidation(statusRule);
-
-  addStatusConditionalFormatting_(sheet, 8);
-
-  sheet.setFrozenRows(1);
-  sheet.getRange('B2:B1000').setNumberFormat('MM/dd/yyyy');
-  sheet.getRange('I2:I1000').setNumberFormat('MM/dd/yyyy');
-}
-
-function setupActivityLogTab(ss) {
-  var sheet = getOrCreateSheet_(ss, CONFIG.tabs.activityLog);
-  var headers = ['Timestamp', 'Type', 'Summary', 'Details'];
-
-  sheet.clear();
-  sheet.appendRow(headers);
-  formatHeaderRow_(sheet, headers.length);
-
-  sheet.setColumnWidth(1, 160);
-  sheet.setColumnWidth(2, 120);
-  sheet.setColumnWidth(3, 300);
-  sheet.setColumnWidth(4, 400);
-
-  sheet.setFrozenRows(1);
-  sheet.getRange('A2:A1000').setNumberFormat('MM/dd/yyyy hh:mm a');
-}
-
-function setupDashboardTab(ss) {
-  var sheet = getOrCreateSheet_(ss, CONFIG.tabs.dashboard);
-  sheet.clear();
-
-  // Title
-  sheet.getRange('A1').setValue('Bloom & Shine — Business Dashboard');
-  sheet.getRange('A1').setFontFamily('Montserrat')
-    .setFontSize(18)
-    .setFontWeight('bold')
-    .setFontColor(CONFIG.colors.teal);
-  sheet.getRange('A2').setValue('Auto-updated from website submissions')
-    .setFontColor('#999999')
-    .setFontSize(10)
-    .setFontStyle('italic');
-
-  // Section: Summary Stats
-  sheet.getRange('A4').setValue('SUMMARY').setFontWeight('bold').setFontColor(CONFIG.colors.teal).setFontSize(12);
-
-  var statLabels = [
-    ['Total Contacts', '=COUNTA(Contacts!A2:A)'],
-    ['New (Uncontacted)', '=COUNTIF(Contacts!G2:G,"New")'],
-    ['Total Estimates', '=COUNTA(Estimates!A2:A)'],
-    ['Estimates Converted', '=COUNTIF(Estimates!H2:H,TRUE)'],
-    ['Active Contracts', '=COUNTIF(Contracts!K2:K,"Active")'],
-    ['Total Contracts', '=COUNTA(Contracts!A2:A)'],
-    ['Invoices Sent', '=COUNTIF(Invoices!H2:H,"Sent")'],
-    ['Invoices Paid', '=COUNTIF(Invoices!H2:H,"Paid")'],
-    ['Revenue (Paid)', '=SUMIF(Invoices!H2:H,"Paid",Invoices!F2:F)'],
-    ['Outstanding', '=SUMIF(Invoices!H2:H,"Sent",Invoices!F2:F)']
-  ];
-
-  for (var i = 0; i < statLabels.length; i++) {
-    var row = 5 + i;
-    sheet.getRange('A' + row).setValue(statLabels[i][0]).setFontWeight('bold').setFontColor('#555555');
-    sheet.getRange('B' + row).setFormula(statLabels[i][1]).setFontWeight('bold').setFontColor(CONFIG.colors.teal).setFontSize(14);
-  }
-
-  // Revenue formatting
-  sheet.getRange('B13').setNumberFormat('$#,##0.00');
-  sheet.getRange('B14').setNumberFormat('$#,##0.00');
-
-  // Section: This Week
-  sheet.getRange('A16').setValue('THIS WEEK').setFontWeight('bold').setFontColor(CONFIG.colors.teal).setFontSize(12);
-
-  var weekLabels = [
-    ['New contacts this week', '=COUNTIFS(Contacts!A2:A,">="&(TODAY()-WEEKDAY(TODAY(),2)+1),Contacts!A2:A,"<="&TODAY())'],
-    ['Estimates this week', '=COUNTIFS(Estimates!A2:A,">="&(TODAY()-WEEKDAY(TODAY(),2)+1),Estimates!A2:A,"<="&TODAY())'],
-    ['Contracts signed this week', '=COUNTIFS(Contracts!A2:A,">="&(TODAY()-WEEKDAY(TODAY(),2)+1),Contracts!A2:A,"<="&TODAY())']
-  ];
-
-  for (var j = 0; j < weekLabels.length; j++) {
-    var wRow = 17 + j;
-    sheet.getRange('A' + wRow).setValue(weekLabels[j][0]).setFontWeight('bold').setFontColor('#555555');
-    sheet.getRange('B' + wRow).setFormula(weekLabels[j][1]).setFontWeight('bold').setFontColor(CONFIG.colors.rose).setFontSize(14);
-  }
-
-  // Section: Follow-Ups Due
-  sheet.getRange('A21').setValue('FOLLOW-UPS DUE').setFontWeight('bold').setFontColor(CONFIG.colors.teal).setFontSize(12);
-  sheet.getRange('A22').setValue('Overdue follow-ups').setFontColor('#555555');
-  sheet.getRange('B22').setFormula('=COUNTIFS(Contacts!I2:I,"<"&TODAY(),Contacts!I2:I,"<>""",Contacts!G2:G,"<>Completed",Contacts!G2:G,"<>Lost")')
-    .setFontWeight('bold').setFontColor(CONFIG.colors.rose).setFontSize(14);
-  sheet.getRange('A23').setValue('Due today').setFontColor('#555555');
-  sheet.getRange('B23').setFormula('=COUNTIFS(Contacts!I2:I,TODAY(),Contacts!G2:G,"<>Completed",Contacts!G2:G,"<>Lost")')
-    .setFontWeight('bold').setFontColor(CONFIG.colors.teal).setFontSize(14);
-
-  // Section: Service Breakdown
-  sheet.getRange('D4').setValue('SERVICE BREAKDOWN').setFontWeight('bold').setFontColor(CONFIG.colors.teal).setFontSize(12);
-
-  var services = ['Standard Cleaning', 'Deep Cleaning', 'Move In/Out', 'Commercial & Office', 'Construction & Real Estate', 'Church & Ministry', 'Professional Organization'];
-  for (var s = 0; s < services.length; s++) {
-    var sRow = 5 + s;
-    sheet.getRange('D' + sRow).setValue(services[s]).setFontColor('#555555');
-    sheet.getRange('E' + sRow).setFormula('=COUNTIF(Contacts!E2:E,"' + services[s] + '")+COUNTIF(Estimates!B2:B,"' + services[s] + '")')
-      .setFontWeight('bold').setFontColor(CONFIG.colors.teal);
-  }
-
-  // Column widths
-  sheet.setColumnWidth(1, 220);
-  sheet.setColumnWidth(2, 100);
-  sheet.setColumnWidth(3, 30);
-  sheet.setColumnWidth(4, 220);
-  sheet.setColumnWidth(5, 80);
-
-  // Protect dashboard from accidental edits
-  var protection = sheet.protect().setDescription('Dashboard — auto-calculated');
-  protection.setWarningOnly(true);
-}
-
-// ============================================
-// FORMATTING HELPERS
-// ============================================
-
-function getOrCreateSheet_(ss, name) {
-  var sheet = ss.getSheetByName(name);
-  if (!sheet) {
-    sheet = ss.insertSheet(name);
-  }
-  return sheet;
-}
-
-function formatHeaderRow_(sheet, numCols) {
-  var headerRange = sheet.getRange(1, 1, 1, numCols);
-  headerRange
-    .setBackground(CONFIG.colors.teal)
-    .setFontColor(CONFIG.colors.headerText)
-    .setFontFamily('Montserrat')
-    .setFontWeight('bold')
-    .setFontSize(10)
-    .setVerticalAlignment('middle')
-    .setHorizontalAlignment('left');
-  sheet.setRowHeight(1, 36);
-
-  // Alternating row colors for readability
-  var bandRange = sheet.getRange(2, 1, 998, numCols);
-  var banding = bandRange.getBandings();
-  if (banding.length === 0) {
-    bandRange.applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY)
-      .setHeaderRowColor(CONFIG.colors.teal)
-      .setFirstRowColor(CONFIG.colors.white)
-      .setSecondRowColor(CONFIG.colors.cream);
-  }
-}
-
-function addStatusConditionalFormatting_(sheet, col) {
-  var range = sheet.getRange(2, col, 998, 1);
-
-  var rules = [
-    { text: 'New',        bg: CONFIG.colors.blush, fg: '#9B2C3E' },
-    { text: 'Contacted',  bg: '#D4EDDA',           fg: '#155724' },
-    { text: 'Quoted',     bg: '#CCE5FF',           fg: '#004085' },
-    { text: 'Booked',     bg: CONFIG.colors.sage,   fg: CONFIG.colors.forest },
-    { text: 'Active',     bg: CONFIG.colors.sage,   fg: CONFIG.colors.forest },
-    { text: 'Completed',  bg: '#E2E3E5',           fg: '#383D41' },
-    { text: 'Paid',       bg: '#D4EDDA',           fg: '#155724' },
-    { text: 'Sent',       bg: '#CCE5FF',           fg: '#004085' },
-    { text: 'Overdue',    bg: '#F8D7DA',           fg: '#721C24' },
-    { text: 'Lost',       bg: '#E2E3E5',           fg: '#999999' },
-    { text: 'Terminated', bg: '#E2E3E5',           fg: '#999999' },
-    { text: 'Void',       bg: '#E2E3E5',           fg: '#999999' },
-    { text: 'Paused',     bg: '#FFF3CD',           fg: '#856404' },
-    { text: 'Draft',      bg: '#FFF3CD',           fg: '#856404' }
-  ];
-
-  var existingRules = sheet.getConditionalFormatRules();
-
-  rules.forEach(function(rule) {
-    existingRules.push(
-      SpreadsheetApp.newConditionalFormatRule()
-        .whenTextEqualTo(rule.text)
-        .setBackground(rule.bg)
-        .setFontColor(rule.fg)
-        .setBold(true)
-        .setRanges([range])
-        .build()
-    );
-  });
-
-  sheet.setConditionalFormatRules(existingRules);
-}
-
-// ============================================
-// GET HANDLER (Admin Dashboard data retrieval)
+// REQUEST ROUTING
 // ============================================
 
 function doGet(e) {
   try {
-    var action = (e && e.parameter && e.parameter.action) || 'ping';
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var action = param_(e, 'action', 'ping');
 
-    if (action === 'ping') {
-      return jsonResponse({ result: 'pong' });
+    // Public: health check
+    if (action === 'ping') return json_({ result: 'pong' });
+
+    // Everything else requires auth
+    var session = validateSession_(param_(e, 'token'));
+    if (!session) return json_({ result: 'error', code: 'UNAUTHORIZED', message: 'Invalid or expired session' });
+
+    switch (action) {
+      case 'getAll':       return json_(getAllData_(session));
+      case 'getContacts':  return json_(getSheetRows_('Contacts'));
+      case 'getEstimates': return json_(getSheetRows_('Estimates'));
+      case 'getContracts': return json_(getSheetRows_('Contracts'));
+      case 'getInvoices':  return json_(getSheetRows_('Invoices'));
+      case 'getActivity':  return json_(getSheetRows_('Activity Log'));
+      case 'getUsers':     return json_(getUsers_(session));
+      case 'getSettings':  return json_(getSettings_(session));
+      default:             return json_({ result: 'error', message: 'Unknown action' });
     }
-
-    if (action === 'getAll') {
-      return jsonResponse({
-        result: 'success',
-        contacts: getSheetData_(ss, CONFIG.tabs.contacts),
-        estimates: getSheetData_(ss, CONFIG.tabs.estimates),
-        contracts: getSheetData_(ss, CONFIG.tabs.contracts),
-        invoices: getSheetData_(ss, CONFIG.tabs.invoices)
-      });
-    }
-
-    if (action === 'getSheet') {
-      var sheetName = e.parameter.sheet || CONFIG.tabs.contacts;
-      return jsonResponse({ result: 'success', data: getSheetData_(ss, sheetName) });
-    }
-
-    return jsonResponse({ result: 'error', message: 'Unknown action' });
-
-  } catch (error) {
-    return jsonResponse({ result: 'error', message: error.toString() });
+  } catch (err) {
+    return json_({ result: 'error', message: err.toString() });
   }
 }
-
-function getSheetData_(ss, sheetName) {
-  var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) return [];
-  var lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return [];
-  return sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
-}
-
-function jsonResponse(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// ============================================
-// POST HANDLER (Website form submissions)
-// ============================================
 
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var source = data.source || 'contact';
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var action = data.action || data.source || 'contact';
 
-    switch (source) {
-      case 'contact':
-        logContact_(ss, data);
-        logActivity_(ss, 'Contact', data.name || 'Unknown', 'New contact: ' + (data.service || 'General'));
-        sendContactNotification_(data);
-        break;
-      case 'estimate':
-        logEstimate_(ss, data);
-        logActivity_(ss, 'Estimate', data.service || 'Unknown', '$' + data.estimateLow + '–$' + data.estimateHigh);
-        break;
-      case 'contract':
-        logContract_(ss, data);
-        logActivity_(ss, 'Contract', data.name || 'Unknown', data.service + ' (' + data.frequency + ')');
-        sendContractNotification_(data);
-        break;
-      case 'invoice':
-        logInvoice_(ss, data);
-        logActivity_(ss, 'Invoice', data.clientName || 'Unknown', data.invoiceNumber + ' — $' + data.amount);
-        break;
-      case 'password_reset':
-        sendPasswordResetEmail_(data);
-        break;
-      default:
-        logContact_(ss, data);
+    // --- PUBLIC ENDPOINTS (website form submissions) ---
+    if (action === 'contact')  return json_(handleContact_(data));
+    if (action === 'estimate') return json_(handleEstimate_(data));
+    if (action === 'contract') return json_(handleContract_(data));
+
+    // --- AUTH ENDPOINTS (no session needed) ---
+    if (action === 'login')          return json_(handleLogin_(data));
+    if (action === 'forgot')         return json_(handleForgotPassword_(data));
+    if (action === 'resetPassword')  return json_(handleResetPassword_(data));
+
+    // --- PROTECTED ENDPOINTS (session required) ---
+    var session = validateSession_(data.token);
+    if (!session) return json_({ result: 'error', code: 'UNAUTHORIZED', message: 'Invalid or expired session' });
+
+    switch (action) {
+      case 'logout':           return json_(handleLogout_(data, session));
+      case 'changePassword':   return json_(handleChangePassword_(data, session));
+
+      // CRUD operations
+      case 'updateRow':        return json_(handleUpdateRow_(data, session));
+      case 'deleteRow':        return json_(handleDeleteRow_(data, session));
+      case 'addInvoice':       return json_(handleAddInvoice_(data, session));
+
+      // User management (owner + developer only)
+      case 'addUser':          return json_(handleAddUser_(data, session));
+      case 'removeUser':       return json_(handleRemoveUser_(data, session));
+      case 'resetUserPw':      return json_(handleResetUserPassword_(data, session));
+      case 'updateSettings':   return json_(handleUpdateSettings_(data, session));
+
+      // Password reset email (via Apps Script)
+      case 'password_reset':   sendPasswordResetEmail_(data); return json_({ result: 'success' });
+
+      default: return json_({ result: 'error', message: 'Unknown action' });
     }
-
-    return jsonResponse({ result: 'success' });
-
-  } catch (error) {
-    return jsonResponse({ result: 'error', message: error.toString() });
+  } catch (err) {
+    return json_({ result: 'error', message: err.toString() });
   }
 }
 
 // ============================================
-// LOGGING FUNCTIONS
+// AUTHENTICATION
 // ============================================
 
-function logContact_(ss, data) {
-  var sheet = ss.getSheetByName(CONFIG.tabs.contacts);
-  if (!sheet) return;
-  sheet.appendRow([
-    new Date(),
-    data.name || '',
-    data.email || '',
-    data.phone || '',
-    data.service || '',
-    data.message || '',
-    'New',
-    '',  // Notes
-    ''   // Follow-up date
-  ]);
+function handleLogin_(data) {
+  var email = (data.email || '').trim().toLowerCase();
+  var password = data.password || '';
+  if (!email || !password) return { result: 'error', message: 'Email and password required' };
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var usersSheet = ss.getSheetByName('_Users');
+  if (!usersSheet || usersSheet.getLastRow() <= 1) return { result: 'error', message: 'Invalid credentials' };
+
+  var users = usersSheet.getDataRange().getValues();
+  var salt = getProp_('ENCRYPTION_SALT');
+  var hash = hashPw_(password, salt);
+
+  for (var i = 1; i < users.length; i++) {
+    if (users[i][0].toLowerCase() === email && users[i][7] === 'active') {
+      if (users[i][3] === hash) {
+        // Create session
+        var token = generateToken_();
+        var durationHours = parseInt(getSetting_(ss, 'session_duration_hours') || '4');
+        var expires = new Date(Date.now() + durationHours * 3600000);
+
+        var sessionsSheet = ss.getSheetByName('_Sessions');
+        if (sessionsSheet) {
+          sessionsSheet.appendRow([token, email, users[i][2], new Date(), expires, '']);
+        }
+
+        logAudit_('Login', email);
+
+        return {
+          result: 'success',
+          token: token,
+          user: {
+            email: users[i][0],
+            name: users[i][1],
+            role: users[i][2],
+            mustChangePassword: users[i][4] === 'Yes'
+          }
+        };
+      }
+      break;
+    }
+  }
+
+  logAudit_('Login failed', email);
+  return { result: 'error', message: 'Invalid credentials' };
 }
 
-function logEstimate_(ss, data) {
-  var sheet = ss.getSheetByName(CONFIG.tabs.estimates);
-  if (!sheet) return;
-  sheet.appendRow([
-    new Date(),
-    data.service || '',
-    data.sqft || '',
-    data.frequency || '',
-    data.addons || '',
-    data.estimateLow || '',
-    data.estimateHigh || '',
-    false  // Converted checkbox
-  ]);
+function handleLogout_(data, session) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sessionsSheet = ss.getSheetByName('_Sessions');
+  if (sessionsSheet) {
+    var rows = sessionsSheet.getDataRange().getValues();
+    for (var i = rows.length - 1; i >= 1; i--) {
+      if (rows[i][0] === data.token) {
+        sessionsSheet.deleteRow(i + 1);
+        break;
+      }
+    }
+  }
+  logAudit_('Logout', session.email);
+  return { result: 'success' };
 }
 
-function logContract_(ss, data) {
-  var sheet = ss.getSheetByName(CONFIG.tabs.contracts);
-  if (!sheet) return;
-  sheet.appendRow([
-    new Date(),
-    data.name || '',
-    data.email || '',
-    data.phone || '',
-    data.address || '',
-    data.service || '',
-    data.frequency || '',
-    data.mediaRelease || 'no',
-    data.signed ? 'Yes' : 'No',
-    data.signedDate || '',
-    'New',
-    ''  // Notes
-  ]);
+function handleChangePassword_(data, session) {
+  var currentPw = data.currentPassword || '';
+  var newPw = data.newPassword || '';
+  if (!newPw || newPw.length < 6) return { result: 'error', message: 'Password must be at least 6 characters' };
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var usersSheet = ss.getSheetByName('_Users');
+  var users = usersSheet.getDataRange().getValues();
+  var salt = getProp_('ENCRYPTION_SALT');
+
+  for (var i = 1; i < users.length; i++) {
+    if (users[i][0].toLowerCase() === session.email) {
+      // If not forcing change, verify current password
+      if (users[i][4] !== 'Yes') {
+        if (hashPw_(currentPw, salt) !== users[i][3]) {
+          return { result: 'error', message: 'Current password is incorrect' };
+        }
+      }
+      usersSheet.getRange(i + 1, 4).setValue(hashPw_(newPw, salt));
+      usersSheet.getRange(i + 1, 5).setValue('No');
+      logAudit_('Password changed', session.email);
+      return { result: 'success' };
+    }
+  }
+  return { result: 'error', message: 'User not found' };
 }
 
-function logInvoice_(ss, data) {
-  var sheet = ss.getSheetByName(CONFIG.tabs.invoices);
-  if (!sheet) return;
+function handleForgotPassword_(data) {
+  var email = (data.email || '').trim().toLowerCase();
+  if (!email) return { result: 'success' }; // Don't reveal whether email exists
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var usersSheet = ss.getSheetByName('_Users');
+  if (!usersSheet) return { result: 'success' };
+
+  var users = usersSheet.getDataRange().getValues();
+  var found = false;
+  var userName = '';
+
+  for (var i = 1; i < users.length; i++) {
+    if (users[i][0].toLowerCase() === email && users[i][7] === 'active') {
+      found = true;
+      userName = users[i][1];
+      break;
+    }
+  }
+
+  if (found) {
+    var code = generateResetCode_();
+    var expiry = parseInt(getSetting_(ss, 'reset_code_expiry_minutes') || '30');
+    var props = PropertiesService.getScriptProperties();
+    props.setProperty('RESET_' + email, JSON.stringify({
+      code: hashPw_(code, getProp_('ENCRYPTION_SALT')),
+      expiry: Date.now() + expiry * 60000,
+      attempts: 0
+    }));
+
+    try {
+      MailApp.sendEmail(email,
+        '🔐 Bloom & Shine — Password Reset Code',
+        'Hi ' + userName + ',\n\n' +
+        'Your password reset code is: ' + code + '\n\n' +
+        'This code expires in ' + expiry + ' minutes.\n' +
+        'If you did not request this, ignore this email.\n\n' +
+        '— Bloom & Shine Cleaning Services'
+      );
+    } catch (e) {
+      Logger.log('Failed to send reset email: ' + e.message);
+    }
+    logAudit_('Password reset requested', email);
+  }
+
+  return { result: 'success' };
+}
+
+function handleResetPassword_(data) {
+  var email = (data.email || '').trim().toLowerCase();
+  var code = (data.code || '').trim().toUpperCase();
+  var newPw = data.newPassword || '';
+
+  if (!email || !code || !newPw) return { result: 'error', message: 'All fields required' };
+  if (newPw.length < 6) return { result: 'error', message: 'Password must be at least 6 characters' };
+
+  var props = PropertiesService.getScriptProperties();
+  var resetRaw = props.getProperty('RESET_' + email);
+  if (!resetRaw) return { result: 'error', message: 'No reset request found' };
+
+  var reset = JSON.parse(resetRaw);
+  if (Date.now() > reset.expiry) {
+    props.deleteProperty('RESET_' + email);
+    return { result: 'error', message: 'Code expired. Please request a new one.' };
+  }
+
+  reset.attempts = (reset.attempts || 0) + 1;
+  if (reset.attempts > 5) {
+    props.deleteProperty('RESET_' + email);
+    return { result: 'error', message: 'Too many attempts. Request a new code.' };
+  }
+
+  var salt = getProp_('ENCRYPTION_SALT');
+  if (hashPw_(code, salt) !== reset.code) {
+    props.setProperty('RESET_' + email, JSON.stringify(reset));
+    return { result: 'error', message: 'Invalid code. ' + (5 - reset.attempts) + ' attempts remaining.' };
+  }
+
+  // Code valid — update password
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var usersSheet = ss.getSheetByName('_Users');
+  var users = usersSheet.getDataRange().getValues();
+  for (var i = 1; i < users.length; i++) {
+    if (users[i][0].toLowerCase() === email) {
+      usersSheet.getRange(i + 1, 4).setValue(hashPw_(newPw, salt));
+      usersSheet.getRange(i + 1, 5).setValue('No');
+      break;
+    }
+  }
+
+  props.deleteProperty('RESET_' + email);
+  logAudit_('Password reset completed', email);
+  return { result: 'success' };
+}
+
+function validateSession_(token) {
+  if (!token) return null;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sessionsSheet = ss.getSheetByName('_Sessions');
+  if (!sessionsSheet || sessionsSheet.getLastRow() <= 1) return null;
+
+  var rows = sessionsSheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === token && new Date(rows[i][4]) > new Date()) {
+      return { email: rows[i][1], role: rows[i][2] };
+    }
+  }
+  return null;
+}
+
+function cleanExpiredSessions() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('_Sessions');
+  if (!sheet || sheet.getLastRow() <= 1) return;
+
+  var rows = sheet.getDataRange().getValues();
+  var now = new Date();
+  for (var i = rows.length - 1; i >= 1; i--) {
+    if (new Date(rows[i][4]) <= now) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+}
+
+// ============================================
+// DATA READ
+// ============================================
+
+function getAllData_(session) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return {
+    result: 'success',
+    contacts: getRows_(ss, 'Contacts'),
+    estimates: getRows_(ss, 'Estimates'),
+    contracts: getRows_(ss, 'Contracts'),
+    invoices: getRows_(ss, 'Invoices')
+  };
+}
+
+function getSheetRows_(sheetName) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return { result: 'success', data: getRows_(ss, sheetName) };
+}
+
+function getRows_(ss, name) {
+  var sheet = ss.getSheetByName(name);
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  return data.map(function(row, idx) {
+    var obj = { _row: idx + 2 }; // 1-indexed, skip header
+    headers.forEach(function(h, c) { obj[h] = row[c]; });
+    return obj;
+  });
+}
+
+function getUsers_(session) {
+  if (session.role !== 'developer' && session.role !== 'owner') {
+    return { result: 'error', message: 'Insufficient permissions' };
+  }
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('_Users');
+  if (!sheet || sheet.getLastRow() <= 1) return { result: 'success', users: [] };
+
+  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  // Exclude password hash from response
+  var users = data.map(function(row, idx) {
+    return {
+      _row: idx + 2,
+      email: row[0],
+      name: row[1],
+      role: row[2],
+      mustChangePassword: row[4],
+      protected: row[5],
+      created: row[6],
+      status: row[7]
+    };
+  });
+  return { result: 'success', users: users };
+}
+
+function getSettings_(session) {
+  if (session.role !== 'developer' && session.role !== 'owner') {
+    return { result: 'error', message: 'Insufficient permissions' };
+  }
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('_Settings');
+  if (!sheet || sheet.getLastRow() <= 1) return { result: 'success', settings: {} };
+
+  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
+  var settings = {};
+  data.forEach(function(row) { settings[row[0]] = row[1]; });
+  return { result: 'success', settings: settings };
+}
+
+// ============================================
+// DATA WRITE — CRUD
+// ============================================
+
+function handleUpdateRow_(data, session) {
+  var sheetName = data.sheet;
+  var rowNum = data.row;
+  var updates = data.updates; // { columnName: value, ... }
+
+  if (!sheetName || !rowNum || !updates) return { result: 'error', message: 'Missing sheet, row, or updates' };
+
+  // Block admin sheets from CRUD unless developer
+  if (sheetName.charAt(0) === '_' && session.role !== 'developer') {
+    return { result: 'error', message: 'Cannot modify admin data' };
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return { result: 'error', message: 'Sheet not found' };
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  for (var col in updates) {
+    var colIdx = headers.indexOf(col);
+    if (colIdx >= 0) {
+      sheet.getRange(rowNum, colIdx + 1).setValue(updates[col]);
+    }
+  }
+
+  logActivity_(ss, 'Update', sheetName + ' row ' + rowNum, JSON.stringify(updates).substring(0, 200));
+  logAudit_(sheetName + ' row updated: ' + rowNum, session.email);
+  return { result: 'success' };
+}
+
+function handleDeleteRow_(data, session) {
+  var sheetName = data.sheet;
+  var rowNum = data.row;
+
+  if (!sheetName || !rowNum) return { result: 'error', message: 'Missing sheet or row' };
+  if (sheetName.charAt(0) === '_') return { result: 'error', message: 'Cannot delete admin data via API' };
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return { result: 'error', message: 'Sheet not found' };
+
+  // Log what's being deleted before removing
+  var rowData = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
+  sheet.deleteRow(rowNum);
+
+  logActivity_(ss, 'Delete', sheetName + ' row ' + rowNum, 'Deleted: ' + rowData.slice(0, 3).join(', '));
+  logAudit_(sheetName + ' row deleted: ' + rowNum, session.email);
+  return { result: 'success' };
+}
+
+function handleAddInvoice_(data, session) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Invoices');
+  if (!sheet) return { result: 'error', message: 'Invoices sheet not found' };
+
   sheet.appendRow([
     data.invoiceNumber || '',
     new Date(),
@@ -598,249 +445,388 @@ function logInvoice_(ss, data) {
     data.amount || 0,
     data.paymentMethod || '',
     'Draft',
-    '',  // Paid date
-    ''   // Notes
+    '',
+    data.notes || ''
   ]);
-}
 
-function logActivity_(ss, type, summary, details) {
-  var sheet = ss.getSheetByName(CONFIG.tabs.activityLog);
-  if (!sheet) return;
-  sheet.appendRow([new Date(), type, summary, details]);
+  logActivity_(ss, 'Invoice', data.clientName || 'Unknown', (data.invoiceNumber || '') + ' — $' + (data.amount || 0));
+  logAudit_('Invoice created: ' + (data.invoiceNumber || ''), session.email);
+  return { result: 'success' };
 }
 
 // ============================================
-// EMAIL NOTIFICATIONS
+// USER MANAGEMENT (owner + developer)
 // ============================================
 
-function sendContactNotification_(data) {
-  var subject = '🌸 New Contact — ' + (data.name || 'Unknown');
-  var body = 'New contact from your website!\n\n' +
+function handleAddUser_(data, session) {
+  if (session.role !== 'developer' && session.role !== 'owner') {
+    return { result: 'error', message: 'Insufficient permissions' };
+  }
+
+  var email = (data.email || '').trim().toLowerCase();
+  var name = (data.name || '').trim();
+  var role = data.role || 'staff';
+
+  if (!email || !name) return { result: 'error', message: 'Email and name required' };
+
+  // Only developer can create developer accounts
+  if (role === 'developer' && session.role !== 'developer') {
+    return { result: 'error', message: 'Only developers can create developer accounts' };
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var usersSheet = ss.getSheetByName('_Users');
+
+  // Check for duplicate
+  var existing = usersSheet.getDataRange().getValues();
+  for (var i = 1; i < existing.length; i++) {
+    if (existing[i][0].toLowerCase() === email) {
+      return { result: 'error', message: 'User already exists' };
+    }
+  }
+
+  var tempPassword = data.tempPassword || generateResetCode_() + generateResetCode_();
+  var salt = getProp_('ENCRYPTION_SALT');
+
+  usersSheet.appendRow([
+    email, name, role,
+    hashPw_(tempPassword, salt),
+    'Yes', 'false',
+    new Date().toISOString(), 'active'
+  ]);
+
+  logAudit_('User added: ' + email + ' (' + role + ')', session.email);
+  return { result: 'success', tempPassword: tempPassword };
+}
+
+function handleRemoveUser_(data, session) {
+  if (session.role !== 'developer' && session.role !== 'owner') {
+    return { result: 'error', message: 'Insufficient permissions' };
+  }
+
+  var email = (data.email || '').trim().toLowerCase();
+  if (!email) return { result: 'error', message: 'Email required' };
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var usersSheet = ss.getSheetByName('_Users');
+  var users = usersSheet.getDataRange().getValues();
+
+  for (var i = 1; i < users.length; i++) {
+    if (users[i][0].toLowerCase() === email) {
+      // Can't remove protected accounts unless developer
+      if (users[i][5] === 'true' && session.role !== 'developer') {
+        return { result: 'error', message: 'Cannot remove protected accounts' };
+      }
+      // Can't remove yourself
+      if (email === session.email) {
+        return { result: 'error', message: 'Cannot remove your own account' };
+      }
+      usersSheet.deleteRow(i + 1);
+      logAudit_('User removed: ' + email, session.email);
+      return { result: 'success' };
+    }
+  }
+  return { result: 'error', message: 'User not found' };
+}
+
+function handleResetUserPassword_(data, session) {
+  if (session.role !== 'developer' && session.role !== 'owner') {
+    return { result: 'error', message: 'Insufficient permissions' };
+  }
+
+  var email = (data.email || '').trim().toLowerCase();
+  if (!email) return { result: 'error', message: 'Email required' };
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var usersSheet = ss.getSheetByName('_Users');
+  var users = usersSheet.getDataRange().getValues();
+
+  for (var i = 1; i < users.length; i++) {
+    if (users[i][0].toLowerCase() === email) {
+      if (users[i][5] === 'true' && session.role !== 'developer') {
+        return { result: 'error', message: 'Cannot reset protected account passwords' };
+      }
+      var tempPw = generateResetCode_() + generateResetCode_();
+      var salt = getProp_('ENCRYPTION_SALT');
+      usersSheet.getRange(i + 1, 4).setValue(hashPw_(tempPw, salt));
+      usersSheet.getRange(i + 1, 5).setValue('Yes');
+      logAudit_('Password reset for: ' + email, session.email);
+      return { result: 'success', tempPassword: tempPw };
+    }
+  }
+  return { result: 'error', message: 'User not found' };
+}
+
+function handleUpdateSettings_(data, session) {
+  if (session.role !== 'developer' && session.role !== 'owner') {
+    return { result: 'error', message: 'Insufficient permissions' };
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('_Settings');
+  if (!sheet) return { result: 'error', message: 'Settings sheet not found' };
+
+  var key = data.key;
+  var value = data.value;
+  if (!key) return { result: 'error', message: 'Key required' };
+
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === key) {
+      sheet.getRange(i + 1, 2).setValue(value);
+      sheet.getRange(i + 1, 3).setValue(new Date().toISOString());
+      logAudit_('Setting updated: ' + key, session.email);
+      return { result: 'success' };
+    }
+  }
+  // Add new setting
+  sheet.appendRow([key, value, new Date().toISOString()]);
+  logAudit_('Setting added: ' + key, session.email);
+  return { result: 'success' };
+}
+
+// ============================================
+// PUBLIC FORM HANDLERS
+// ============================================
+
+function handleContact_(data) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Contacts');
+  if (!sheet) return { result: 'error', message: 'Contacts sheet not found' };
+
+  sheet.appendRow([
+    new Date(), data.name || '', data.email || '', data.phone || '',
+    data.service || '', data.message || '', 'New', '', ''
+  ]);
+
+  logActivity_(ss, 'Contact', data.name || 'Unknown', 'Service: ' + (data.service || 'General'));
+  sendNotification_('🌸 New Contact — ' + (data.name || 'Unknown'),
+    'New contact from your website!\n\n' +
     'Name: ' + (data.name || '—') + '\n' +
     'Email: ' + (data.email || '—') + '\n' +
     'Phone: ' + (data.phone || '—') + '\n' +
     'Service: ' + (data.service || '—') + '\n' +
     'Message: ' + (data.message || '—') + '\n\n' +
-    '📋 View in your CRM:\n' +
-    SpreadsheetApp.getActiveSpreadsheet().getUrl();
-
-  MailApp.sendEmail(CONFIG.notificationEmail, subject, body);
+    '📋 ' + ss.getUrl()
+  );
+  return { result: 'success' };
 }
 
-function sendContractNotification_(data) {
-  var subject = '🌸 Agreement Signed — ' + (data.name || 'Unknown');
-  var body = 'A new service agreement was signed!\n\n' +
+function handleEstimate_(data) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Estimates');
+  if (!sheet) return { result: 'error', message: 'Estimates sheet not found' };
+
+  sheet.appendRow([
+    new Date(), data.service || '', data.sqft || '', data.frequency || '',
+    data.addons || '', data.estimateLow || '', data.estimateHigh || '', false
+  ]);
+
+  logActivity_(ss, 'Estimate', data.service || 'Unknown', '$' + data.estimateLow + '–$' + data.estimateHigh);
+  return { result: 'success' };
+}
+
+function handleContract_(data) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Contracts');
+  if (!sheet) return { result: 'error', message: 'Contracts sheet not found' };
+
+  sheet.appendRow([
+    new Date(), data.name || '', data.email || '', data.phone || '',
+    data.address || '', data.service || '', data.frequency || '',
+    data.mediaRelease || 'no', data.signed ? 'Yes' : 'No',
+    data.signedDate || '', 'New', ''
+  ]);
+
+  logActivity_(ss, 'Contract', data.name || 'Unknown', (data.service || '') + ' (' + (data.frequency || '') + ')');
+  sendNotification_('🌸 Agreement Signed — ' + (data.name || 'Unknown'),
+    'New service agreement signed!\n\n' +
     'Client: ' + (data.name || '—') + '\n' +
     'Email: ' + (data.email || '—') + '\n' +
     'Phone: ' + (data.phone || '—') + '\n' +
-    'Address: ' + (data.address || '—') + '\n' +
     'Service: ' + (data.service || '—') + '\n' +
-    'Frequency: ' + (data.frequency || '—') + '\n' +
-    'Media Release: ' + (data.mediaRelease || '—') + '\n\n' +
-    'The client downloaded a PDF copy.\n' +
-    'Follow up to schedule their first service.\n\n' +
-    '📋 View in your CRM:\n' +
-    SpreadsheetApp.getActiveSpreadsheet().getUrl();
-
-  MailApp.sendEmail(CONFIG.notificationEmail, subject, body);
-}
-
-function sendPasswordResetEmail_(data) {
-  if (!data.email || !data.code) return;
-  var subject = '🔐 Bloom & Shine — Password Reset Code';
-  var body = 'Hi ' + (data.name || 'there') + ',\n\n' +
-    'Your password reset code is: ' + data.code + '\n\n' +
-    'This code expires in 30 minutes.\n' +
-    'If you did not request this, ignore this email.\n\n' +
-    '— Bloom & Shine Cleaning Services';
-
-  MailApp.sendEmail(data.email, subject, body);
+    'Frequency: ' + (data.frequency || '—') + '\n\n' +
+    '📋 ' + ss.getUrl()
+  );
+  return { result: 'success' };
 }
 
 // ============================================
-// DAILY DIGEST (7:00 AM)
+// EMAIL: DIGESTS
 // ============================================
 
 function sendDailyDigest() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var today = new Date();
-  today.setHours(0, 0, 0, 0);
-  var yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
 
-  // Count yesterday's activity
-  var contacts = countRowsSince_(ss, CONFIG.tabs.contacts, yesterday);
-  var estimates = countRowsSince_(ss, CONFIG.tabs.estimates, yesterday);
-  var contracts = countRowsSince_(ss, CONFIG.tabs.contracts, yesterday);
-
-  // Check follow-ups due today
+  var contacts = countSince_(ss, 'Contacts', yesterday);
+  var estimates = countSince_(ss, 'Estimates', yesterday);
+  var contracts = countSince_(ss, 'Contracts', yesterday);
   var followUps = getFollowUpsDue_(ss);
+  var newLeads = getNewLeads_(ss);
 
-  // Only send if there's something to report
-  if (contacts === 0 && estimates === 0 && contracts === 0 && followUps.length === 0) return;
+  if (contacts === 0 && estimates === 0 && contracts === 0 && followUps.length === 0 && newLeads.length === 0) return;
 
-  var subject = '🌸 Bloom & Shine — Daily Summary (' + Utilities.formatDate(today, CONFIG.timezone, 'MMM d') + ')';
+  var tz = getProp_('TIMEZONE') || 'America/New_York';
   var body = 'Good morning! Here\'s your daily summary:\n\n';
 
   if (contacts > 0 || estimates > 0 || contracts > 0) {
-    body += '📊 YESTERDAY\'S ACTIVITY\n';
+    body += '📊 YESTERDAY\n';
     if (contacts > 0) body += '  • ' + contacts + ' new contact(s)\n';
-    if (estimates > 0) body += '  • ' + estimates + ' estimate(s) requested\n';
-    if (contracts > 0) body += '  • ' + contracts + ' contract(s) signed\n';
+    if (estimates > 0) body += '  • ' + estimates + ' estimate(s)\n';
+    if (contracts > 0) body += '  • ' + contracts + ' contract(s)\n';
     body += '\n';
   }
 
   if (followUps.length > 0) {
     body += '📞 FOLLOW-UPS DUE TODAY\n';
-    followUps.forEach(function(fu) {
-      body += '  • ' + fu.name + ' (' + fu.service + ') — ' + fu.phone + '\n';
-    });
+    followUps.forEach(function(f) { body += '  • ' + f.name + ' — ' + f.service + ' — ' + f.phone + '\n'; });
     body += '\n';
   }
 
-  // New contacts needing attention
-  var newContacts = getNewContacts_(ss);
-  if (newContacts.length > 0) {
-    body += '🆕 UNCONTACTED LEADS (' + newContacts.length + ')\n';
-    newContacts.slice(0, 5).forEach(function(c) {
-      body += '  • ' + c.name + ' — ' + c.service + ' — ' + c.phone + '\n';
-    });
-    if (newContacts.length > 5) body += '  ... and ' + (newContacts.length - 5) + ' more\n';
+  if (newLeads.length > 0) {
+    body += '🆕 UNCONTACTED (' + newLeads.length + ')\n';
+    newLeads.slice(0, 5).forEach(function(c) { body += '  • ' + c.name + ' — ' + c.service + ' — ' + c.phone + '\n'; });
+    if (newLeads.length > 5) body += '  ... and ' + (newLeads.length - 5) + ' more\n';
     body += '\n';
   }
 
-  body += '📋 Open your CRM:\n' + ss.getUrl() + '\n\n';
-  body += 'Have a blessed day! 🌸';
-
-  MailApp.sendEmail(CONFIG.notificationEmail, subject, body);
+  body += '📋 ' + ss.getUrl() + '\nHave a blessed day! 🌸';
+  sendNotification_('🌸 Daily Summary — ' + Utilities.formatDate(today, tz, 'MMM d'), body);
 }
-
-// ============================================
-// WEEKLY SUMMARY (Monday 8:00 AM)
-// ============================================
 
 function sendWeeklySummary() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var today = new Date();
-  var weekAgo = new Date(today);
-  weekAgo.setDate(weekAgo.getDate() - 7);
+  var weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+  var tz = getProp_('TIMEZONE') || 'America/New_York';
 
-  var contacts = countRowsSince_(ss, CONFIG.tabs.contacts, weekAgo);
-  var estimates = countRowsSince_(ss, CONFIG.tabs.estimates, weekAgo);
-  var contracts = countRowsSince_(ss, CONFIG.tabs.contracts, weekAgo);
+  var contacts = countSince_(ss, 'Contacts', weekAgo);
+  var estimates = countSince_(ss, 'Estimates', weekAgo);
+  var contracts = countSince_(ss, 'Contracts', weekAgo);
 
-  // Revenue this week
-  var invoiceSheet = ss.getSheetByName(CONFIG.tabs.invoices);
   var weekRevenue = 0;
-  if (invoiceSheet && invoiceSheet.getLastRow() > 1) {
-    var invoiceData = invoiceSheet.getRange(2, 1, invoiceSheet.getLastRow() - 1, 9).getValues();
-    invoiceData.forEach(function(row) {
-      var paidDate = row[8]; // Paid Date column
-      if (paidDate && new Date(paidDate) >= weekAgo && row[7] === 'Paid') {
-        weekRevenue += Number(row[5]) || 0;
-      }
+  var invSheet = ss.getSheetByName('Invoices');
+  if (invSheet && invSheet.getLastRow() > 1) {
+    invSheet.getRange(2, 1, invSheet.getLastRow() - 1, 9).getValues().forEach(function(r) {
+      if (r[8] && new Date(r[8]) >= weekAgo && r[7] === 'Paid') weekRevenue += Number(r[5]) || 0;
     });
   }
 
-  var subject = '🌸 Bloom & Shine — Weekly Report (' +
-    Utilities.formatDate(weekAgo, CONFIG.timezone, 'MMM d') + ' – ' +
-    Utilities.formatDate(today, CONFIG.timezone, 'MMM d') + ')';
-
-  var body = 'Good morning! Here\'s your weekly summary:\n\n' +
+  var body = 'Good morning! Weekly summary:\n\n' +
     '📊 THIS WEEK\n' +
-    '  • ' + contacts + ' new contact(s)\n' +
+    '  • ' + contacts + ' contact(s)\n' +
     '  • ' + estimates + ' estimate(s)\n' +
-    '  • ' + contracts + ' contract(s) signed\n' +
-    '  • $' + weekRevenue.toFixed(2) + ' revenue collected\n\n';
+    '  • ' + contracts + ' contract(s)\n' +
+    '  • $' + weekRevenue.toFixed(2) + ' revenue\n\n' +
+    '📋 ' + ss.getUrl() + '\n\n' +
+    '"Whatever you do, work at it with all your heart." — Col 3:23 🌸';
 
-  // All-time stats
-  var totalContacts = countAllRows_(ss, CONFIG.tabs.contacts);
-  var totalContracts = countAllRows_(ss, CONFIG.tabs.contracts);
-  var newLeads = getNewContacts_(ss).length;
-
-  body += '📈 ALL-TIME\n' +
-    '  • ' + totalContacts + ' total contacts\n' +
-    '  • ' + totalContracts + ' total contracts\n' +
-    '  • ' + newLeads + ' leads awaiting follow-up\n\n';
-
-  body += '📋 Open your CRM:\n' + ss.getUrl() + '\n\n';
-  body += '"Whatever you do, work at it with all your heart." — Col 3:23 🌸';
-
-  MailApp.sendEmail(CONFIG.notificationEmail, subject, body);
+  sendNotification_('🌸 Weekly Report — ' +
+    Utilities.formatDate(weekAgo, tz, 'MMM d') + '–' +
+    Utilities.formatDate(today, tz, 'MMM d'), body);
 }
 
 // ============================================
-// DATA HELPERS
+// HELPERS
 // ============================================
 
-function countRowsSince_(ss, tabName, sinceDate) {
-  var sheet = ss.getSheetByName(tabName);
+function json_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function param_(e, key, fallback) {
+  return (e && e.parameter && e.parameter[key]) || fallback || '';
+}
+
+function getProp_(key) {
+  return PropertiesService.getScriptProperties().getProperty(key) || '';
+}
+
+function getSetting_(ss, key) {
+  var sheet = ss.getSheetByName('_Settings');
+  if (!sheet || sheet.getLastRow() <= 1) return null;
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === key) return data[i][1];
+  }
+  return null;
+}
+
+function hashPw_(password, salt) {
+  var raw = salt + ':' + password;
+  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw);
+  return digest.map(function(b) { return ('0' + ((b + 256) % 256).toString(16)).slice(-2); }).join('');
+}
+
+function generateToken_() {
+  var bytes = [];
+  for (var i = 0; i < 32; i++) bytes.push(Math.floor(Math.random() * 256));
+  return Utilities.base64EncodeWebSafe(bytes);
+}
+
+function generateResetCode_() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var code = '';
+  for (var i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+  return code;
+}
+
+function sendNotification_(subject, body) {
+  var email = getProp_('NOTIFICATION_EMAIL');
+  if (email) MailApp.sendEmail(email, subject, body);
+}
+
+function sendPasswordResetEmail_(data) {
+  if (!data.email || !data.code) return;
+  MailApp.sendEmail(data.email,
+    '🔐 Bloom & Shine — Password Reset Code',
+    'Hi ' + (data.name || 'there') + ',\n\nYour reset code: ' + data.code +
+    '\n\nExpires in 30 minutes.\n\n— Bloom & Shine Cleaning Services');
+}
+
+function logActivity_(ss, type, summary, details) {
+  try {
+    var sheet = ss.getSheetByName('Activity Log');
+    if (sheet) sheet.appendRow([new Date(), type, summary, details]);
+  } catch (e) { /* silent */ }
+}
+
+function logAudit_(event, actor) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('_Audit');
+    if (sheet) sheet.appendRow([new Date(), event, '', actor || Session.getEffectiveUser().getEmail()]);
+  } catch (e) { /* silent */ }
+}
+
+function countSince_(ss, tab, since) {
+  var sheet = ss.getSheetByName(tab);
   if (!sheet || sheet.getLastRow() <= 1) return 0;
-  var timestamps = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
-  var count = 0;
-  timestamps.forEach(function(row) {
-    if (row[0] && new Date(row[0]) >= sinceDate) count++;
-  });
-  return count;
-}
-
-function countAllRows_(ss, tabName) {
-  var sheet = ss.getSheetByName(tabName);
-  if (!sheet) return 0;
-  return Math.max(0, sheet.getLastRow() - 1);
+  var ts = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  var c = 0; ts.forEach(function(r) { if (r[0] && new Date(r[0]) >= since) c++; }); return c;
 }
 
 function getFollowUpsDue_(ss) {
-  var sheet = ss.getSheetByName(CONFIG.tabs.contacts);
+  var sheet = ss.getSheetByName('Contacts');
   if (!sheet || sheet.getLastRow() <= 1) return [];
   var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 9).getValues();
-  var today = new Date();
-  today.setHours(0, 0, 0, 0);
-  var tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
   var due = [];
-  data.forEach(function(row) {
-    var followUp = row[8]; // Follow-Up Date column
-    var status = row[6];
-    if (followUp && new Date(followUp) >= today && new Date(followUp) < tomorrow &&
-        status !== 'Completed' && status !== 'Lost') {
-      due.push({ name: row[1], service: row[4], phone: row[3] });
-    }
+  data.forEach(function(r) {
+    if (r[8] && new Date(r[8]) >= today && new Date(r[8]) < tomorrow && r[6] !== 'Completed' && r[6] !== 'Lost')
+      due.push({ name: r[1], service: r[4], phone: r[3] });
   });
   return due;
 }
 
-function getNewContacts_(ss) {
-  var sheet = ss.getSheetByName(CONFIG.tabs.contacts);
+function getNewLeads_(ss) {
+  var sheet = ss.getSheetByName('Contacts');
   if (!sheet || sheet.getLastRow() <= 1) return [];
   var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 7).getValues();
-  var newContacts = [];
-  data.forEach(function(row) {
-    if (row[6] === 'New') {
-      newContacts.push({ name: row[1], service: row[4], phone: row[3] });
-    }
-  });
-  return newContacts;
-}
-
-// ============================================
-// UTILITY: Manual test
-// ============================================
-
-function testSetup() {
-  var testData = {
-    postData: {
-      contents: JSON.stringify({
-        source: 'contact',
-        name: 'Test User',
-        email: 'test@example.com',
-        phone: '555-0123',
-        service: 'Standard Cleaning',
-        message: 'This is a test.'
-      })
-    }
-  };
-  var result = doPost(testData);
-  Logger.log(result.getContent());
+  var leads = [];
+  data.forEach(function(r) { if (r[6] === 'New') leads.push({ name: r[1], service: r[4], phone: r[3] }); });
+  return leads;
 }

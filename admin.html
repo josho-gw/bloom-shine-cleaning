@@ -47,6 +47,13 @@
         <button type="submit" class="btn-primary w-full">Sign In</button>
       </form>
 
+      <!-- First-time API URL setup (hidden by default) -->
+      <div id="login-setup" class="hidden mt-4 text-left bg-cream rounded-xl p-4">
+        <label class="form-label text-xs">Apps Script URL (one-time setup)</label>
+        <input type="url" id="login-api-url" class="form-input text-xs mb-2" placeholder="https://script.google.com/macros/s/.../exec">
+        <button onclick="saveApiUrl()" class="btn-secondary text-xs px-3 py-1 w-full">Save URL</button>
+      </div>
+
       <div class="mt-4">
         <button onclick="showForgotPassword()" class="text-xs text-gray-400 hover:text-teal transition-colors">Forgot password?</button>
       </div>
@@ -248,10 +255,11 @@
                   <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Phone</th>
                   <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Service</th>
                   <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Status</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider w-16"></th>
                 </tr>
               </thead>
               <tbody id="contacts-table-body">
-                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">Connect Google Sheets to view contacts.</td></tr>
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 italic">Connect Google Sheets to view contacts.</td></tr>
               </tbody>
             </table>
           </div>
@@ -275,10 +283,11 @@
                   <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Frequency</th>
                   <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Add-Ons</th>
                   <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Estimate</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider w-16"></th>
                 </tr>
               </thead>
               <tbody id="estimates-table-body">
-                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">Connect Google Sheets to view estimates.</td></tr>
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 italic">Connect Google Sheets to view estimates.</td></tr>
               </tbody>
             </table>
           </div>
@@ -302,10 +311,11 @@
                   <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Frequency</th>
                   <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Media</th>
                   <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Status</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider w-16"></th>
                 </tr>
               </thead>
               <tbody id="contracts-table-body">
-                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">Connect Google Sheets to view contracts.</td></tr>
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 italic">Connect Google Sheets to view contracts.</td></tr>
               </tbody>
             </table>
           </div>
@@ -314,68 +324,107 @@
 
       <!-- ==================== INVOICES TAB ==================== -->
       <div id="tab-invoices" class="tab-content hidden">
-        <h2 class="font-heading text-teal text-2xl font-bold mb-6">Create Invoice</h2>
-        <div class="bg-white rounded-xl shadow-sm p-6 sm:p-8 max-w-2xl">
-          <div class="space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="form-label">Client Name *</label>
-                <input type="text" id="inv-client-name" class="form-input" placeholder="Client's full name">
-              </div>
-              <div>
-                <label class="form-label">Client Email</label>
-                <input type="email" id="inv-client-email" class="form-input" placeholder="client@email.com">
-              </div>
-            </div>
-            <div>
-              <label class="form-label">Client Address</label>
-              <input type="text" id="inv-client-address" class="form-input" placeholder="Street, City, State ZIP">
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="form-label">Invoice Number</label>
-                <input type="text" id="inv-number" class="form-input" readonly>
-              </div>
-              <div>
-                <label class="form-label">Date of Service</label>
-                <input type="date" id="inv-date" class="form-input">
-              </div>
-            </div>
-            <div>
-              <label class="form-label">Line Items</label>
-              <div id="inv-line-items" class="space-y-2"></div>
-              <button onclick="addInvoiceLineItem()" class="text-sm text-teal hover:underline mt-2">+ Add Line Item</button>
-            </div>
-            <div>
-              <label class="form-label">Quick Add-Ons</label>
-              <div class="flex flex-wrap gap-2">
-                <button onclick="addInvoiceAddon('Dish Washing', 15)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Dishes $15</button>
-                <button onclick="addInvoiceAddon('Oven Cleaning', 50)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Oven $50</button>
-                <button onclick="addInvoiceAddon('Fridge Cleaning', 50)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Fridge $50</button>
-              </div>
-            </div>
-            <div class="bg-cream rounded-xl p-4 flex justify-between items-center">
-              <span class="font-heading text-teal font-bold text-lg">Total</span>
-              <span id="inv-total" class="font-heading text-rose font-bold text-2xl">$0.00</span>
-            </div>
-            <div>
-              <label class="form-label">Preferred Payment Method</label>
-              <select id="inv-payment-method" class="form-select">
-                <option value="venmo">Venmo</option>
-                <option value="cashapp">Cash App</option>
-                <option value="cash">Cash</option>
-              </select>
-            </div>
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="font-heading text-teal text-2xl font-bold">Invoices</h2>
+          <div class="flex gap-3">
+            <button onclick="refreshData()" class="btn-secondary text-xs px-3 py-1.5">Refresh</button>
+            <button onclick="openCreateInvoice()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white uppercase tracking-wide" style="background: #2D8B4E; border: none; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#236B3C'" onmouseout="this.style.background='#2D8B4E'">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+              Create Invoice
+            </button>
           </div>
-          <div class="mt-6 flex flex-col sm:flex-row gap-3">
-            <button onclick="generateInvoicePDF()" class="btn-primary flex-1">
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              Download PDF
-            </button>
-            <button onclick="sendInvoicePaymentLink()" class="btn-rose flex-1">
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-              Copy Payment Link
-            </button>
+        </div>
+
+        <!-- Invoice List -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-cream">
+                <tr>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Invoice #</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Date</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Client</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Service</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Amount</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider">Status</th>
+                  <th class="text-left px-4 py-3 font-heading text-teal text-xs uppercase tracking-wider w-16"></th>
+                </tr>
+              </thead>
+              <tbody id="invoices-table-body">
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 italic">No invoices yet. Click "Create Invoice" to get started.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Create Invoice Form (hidden by default) -->
+        <div id="create-invoice-form" class="hidden">
+          <div class="bg-white rounded-xl shadow-sm p-6 sm:p-8 max-w-2xl">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="font-heading text-teal text-xl font-bold">New Invoice</h3>
+              <button onclick="closeCreateInvoice()" class="text-gray-400 hover:text-rose text-sm">&times; Close</button>
+            </div>
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label">Client Name *</label>
+                  <input type="text" id="inv-client-name" class="form-input" placeholder="Client's full name">
+                </div>
+                <div>
+                  <label class="form-label">Client Email</label>
+                  <input type="email" id="inv-client-email" class="form-input" placeholder="client@email.com">
+                </div>
+              </div>
+              <div>
+                <label class="form-label">Client Address</label>
+                <input type="text" id="inv-client-address" class="form-input" placeholder="Street, City, State ZIP">
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label">Invoice Number</label>
+                  <input type="text" id="inv-number" class="form-input" readonly>
+                </div>
+                <div>
+                  <label class="form-label">Date of Service</label>
+                  <input type="date" id="inv-date" class="form-input">
+                </div>
+              </div>
+              <div>
+                <label class="form-label">Line Items</label>
+                <div id="inv-line-items" class="space-y-2"></div>
+                <button onclick="addInvoiceLineItem()" class="text-sm text-teal hover:underline mt-2">+ Add Line Item</button>
+              </div>
+              <div>
+                <label class="form-label">Quick Add-Ons</label>
+                <div class="flex flex-wrap gap-2">
+                  <button onclick="addInvoiceAddon('Dish Washing', 15)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Dishes $15</button>
+                  <button onclick="addInvoiceAddon('Oven Cleaning', 50)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Oven $50</button>
+                  <button onclick="addInvoiceAddon('Fridge Cleaning', 50)" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 hover:border-sage hover:bg-sage-light transition-colors">Fridge $50</button>
+                </div>
+              </div>
+              <div class="bg-cream rounded-xl p-4 flex justify-between items-center">
+                <span class="font-heading text-teal font-bold text-lg">Total</span>
+                <span id="inv-total" class="font-heading text-rose font-bold text-2xl">$0.00</span>
+              </div>
+              <div>
+                <label class="form-label">Preferred Payment Method</label>
+                <select id="inv-payment-method" class="form-select">
+                  <option value="venmo">Venmo</option>
+                  <option value="cashapp">Cash App</option>
+                  <option value="cash">Cash</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+              <button onclick="generateInvoicePDF()" class="btn-primary flex-1">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Download PDF
+              </button>
+              <button onclick="sendInvoicePaymentLink()" class="btn-rose flex-1">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                Copy Payment Link
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -491,6 +540,39 @@
       </div>
 
     </main>
+  </div>
+
+  <!-- ============================================
+       EDIT ROW MODAL
+       ============================================ -->
+  <div id="edit-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Edit Record">
+    <div class="modal-content max-w-lg">
+      <button onclick="closeEditModal()" class="modal-close" aria-label="Close">&times;</button>
+      <h3 id="edit-modal-title" class="font-heading text-teal text-xl font-bold mb-6"></h3>
+      <div id="edit-fields" class="space-y-4"></div>
+      <div class="mt-6 flex justify-between items-center">
+        <button id="edit-delete-btn" onclick="deleteEditRow()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white uppercase tracking-wide" style="background: #DC3545; border: none; cursor: pointer;" onmouseover="this.style.background='#B02A37'" onmouseout="this.style.background='#DC3545'">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          Delete Record
+        </button>
+        <div class="flex gap-3">
+          <button onclick="closeEditModal()" class="btn-secondary text-xs px-4 py-2">Cancel</button>
+          <button id="edit-save-btn" onclick="saveEdit()" class="btn-primary text-xs px-4 py-2">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       CONTACT DETAIL MODAL
+       ============================================ -->
+  <div id="contact-detail-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Contact Details">
+    <div class="modal-content max-w-2xl">
+      <button onclick="closeContactDetail()" class="modal-close" aria-label="Close">&times;</button>
+      <div id="contact-detail-content">
+        <!-- Populated by admin.js -->
+      </div>
+    </div>
   </div>
 
   <!-- Admin Tab Styles -->

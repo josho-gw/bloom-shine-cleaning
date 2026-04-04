@@ -1,212 +1,147 @@
 /**
  * Bloom & Shine Cleaning Services
- * Admin Dashboard
+ * Admin Dashboard — Client
  *
- * Multi-user authentication with role-based access, forced password
- * change on first login, and forgot-password recovery via email.
+ * All authentication and data operations are server-side via Google Apps Script.
+ * This client holds only a session token in localStorage.
  */
 
 // ============================================
-// CONFIGURATION
+// STATE
 // ============================================
 
-const AUTH_STORAGE_KEY = 'bloomshine_users';
-const SESSION_KEY = 'bloomshine_admin_session';
-const RESET_KEY = 'bloomshine_reset_codes';
-const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
-const RESET_CODE_EXPIRY = 30 * 60 * 1000; // 30 minutes
-
-// ---- CONFIGURE BEFORE DEPLOYMENT ----
-// Set these values before deploying. Do not commit real values to a public repo.
-const ADMIN_CONFIG = {
-  defaultPassword: 'changeme',                 // New users get this; forced to change on first login
-  developerEmail: 'developer@example.com',      // Protected dev account email
-  developerName: 'Developer',                   // Dev account display name
-  ownerEmail: 'owner@example.com',              // Business owner account email
-  ownerName: 'Owner'                            // Owner account display name
-};
-// ---- END CONFIGURATION ----
-
-// Roles — developer is protected, owner has full business access, staff is future
-const ROLE_DEVELOPER = 'developer';
-const ROLE_OWNER = 'owner';
-const ROLE_STAFF = 'staff'; // Stubbed for future employees
-
-// Current session user
+const SESSION_KEY = 'bloomshine_session';
 let currentUser = null;
+let apiUrl = '';
 
 // ============================================
-// CRYPTO
+// API HELPER
 // ============================================
 
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function generateResetCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+async function api(action, data = {}) {
+  const url = apiUrl || localStorage.getItem('bloomshine_script_url') || '';
+  if (!url) {
+    console.warn('[Admin] API URL not configured');
+    return { result: 'error', code: 'NO_URL', message: 'API not configured. Set the Apps Script URL in Settings.' };
   }
-  return code;
-}
 
-// ============================================
-// USER STORE
-// ============================================
+  const token = getToken();
 
-function getUsers() {
-  const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-  if (stored) {
-    try { return JSON.parse(stored); } catch (e) { /* fall through to seed */ }
-  }
-  return null;
-}
-
-function saveUsers(users) {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(users));
-}
-
-function getUserByEmail(email) {
-  const users = getUsers();
-  if (!users) return null;
-  return users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
-}
-
-function updateUser(email, updates) {
-  const users = getUsers();
-  if (!users) return;
-  const idx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-  if (idx >= 0) {
-    users[idx] = { ...users[idx], ...updates };
-    saveUsers(users);
-  }
-}
-
-/**
- * Seed default accounts on first run, migrate old emails if needed
- */
-async function seedDefaultUsers() {
-  const existing = getUsers();
-
-  if (existing && existing.length > 0) return;
-
-  const defaultHash = await sha256(ADMIN_CONFIG.defaultPassword);
-
-  const defaultUsers = [
-    {
-      email: ADMIN_CONFIG.developerEmail,
-      name: ADMIN_CONFIG.developerName,
-      role: ROLE_DEVELOPER,
-      passwordHash: defaultHash,
-      mustChangePassword: true,
-      protected: true,
-      createdAt: new Date().toISOString()
-    },
-    {
-      email: ADMIN_CONFIG.ownerEmail,
-      name: ADMIN_CONFIG.ownerName,
-      role: ROLE_OWNER,
-      passwordHash: defaultHash,
-      mustChangePassword: true,
-      protected: false,
-      createdAt: new Date().toISOString()
+  if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+    // POST
+    const payload = { ...data, action, token };
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'text/plain' }
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('[Admin] API error:', err);
+      return { result: 'error', message: err.message };
     }
-  ];
-
-  saveUsers(defaultUsers);
-}
-
-// ============================================
-// SESSION MANAGEMENT
-// ============================================
-
-function getSession() {
-  const raw = localStorage.getItem(SESSION_KEY);
-  if (!raw) return null;
-  try {
-    const session = JSON.parse(raw);
-    if (Date.now() < session.expiry) return session;
-    localStorage.removeItem(SESSION_KEY);
-  } catch (e) {
-    localStorage.removeItem(SESSION_KEY);
+  } else {
+    // GET
+    const params = new URLSearchParams({ action });
+    if (token) params.set('token', token);
+    try {
+      const res = await fetch(`${url}?${params}`);
+      return await res.json();
+    } catch (err) {
+      console.error('[Admin] API error:', err);
+      return { result: 'error', message: err.message };
+    }
   }
-  return null;
 }
 
-function createSession(user) {
-  const session = {
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    expiry: Date.now() + SESSION_DURATION
-  };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  return session;
+// ============================================
+// SESSION
+// ============================================
+
+function getToken() {
+  const session = localStorage.getItem(SESSION_KEY);
+  if (!session) return null;
+  try {
+    const s = JSON.parse(session);
+    return s.token || null;
+  } catch (e) {
+    return null;
+  }
 }
 
-function destroySession() {
+function saveSession(token, user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ token, user }));
+  currentUser = user;
+}
+
+function clearSession() {
   localStorage.removeItem(SESSION_KEY);
   currentUser = null;
 }
 
+function loadSession() {
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) return null;
+  try {
+    const s = JSON.parse(raw);
+    currentUser = s.user;
+    return s;
+  } catch (e) {
+    return null;
+  }
+}
+
 // ============================================
-// LOGIN FLOW
+// LOGIN
 // ============================================
 
 async function attemptLogin(e) {
   e.preventDefault();
-  const emailInput = document.getElementById('login-email');
-  const passInput = document.getElementById('login-password');
-  const error = document.getElementById('login-error');
-
-  const email = emailInput.value.trim().toLowerCase();
-  const password = passInput.value;
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  const btn = e.target.querySelector('button[type="submit"]');
 
   if (!email || !password) {
-    showLoginError('Please enter both email and password.');
+    showError(errorEl, 'Please enter both email and password.');
     return;
   }
 
-  const user = getUserByEmail(email);
-  if (!user) {
-    showLoginError('Invalid email or password.');
-    passInput.value = '';
+  // Check API URL
+  const url = localStorage.getItem('bloomshine_script_url');
+  if (!url) {
+    showError(errorEl, 'API not configured. Enter the Apps Script URL first.');
+    document.getElementById('login-setup').classList.remove('hidden');
     return;
   }
 
-  const hash = await sha256(password);
-  if (hash !== user.passwordHash) {
-    showLoginError('Invalid email or password.');
-    passInput.value = '';
-    return;
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  const result = await api('login', { email, password });
+
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+
+  if (result.result === 'success') {
+    saveSession(result.token, result.user);
+    errorEl.classList.add('hidden');
+
+    if (result.user.mustChangePassword) {
+      showScreen('force-change-screen');
+    } else {
+      showDashboard();
+    }
+  } else {
+    showError(errorEl, result.message || 'Login failed.');
+    document.getElementById('login-password').value = '';
   }
-
-  currentUser = user;
-
-  // Check if password change is required
-  if (user.mustChangePassword) {
-    showScreen('force-change-screen');
-    return;
-  }
-
-  // Successful login
-  createSession(user);
-  showDashboard();
 }
 
-function showLoginError(msg) {
-  const error = document.getElementById('login-error');
-  error.textContent = msg;
-  error.classList.remove('hidden');
-}
-
-function adminLogout() {
-  destroySession();
+async function adminLogout() {
+  await api('logout', {});
+  clearSession();
   showScreen('login-screen');
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
@@ -214,51 +149,28 @@ function adminLogout() {
 }
 
 // ============================================
-// FORCED PASSWORD CHANGE
+// FORCE PASSWORD CHANGE
 // ============================================
 
 async function submitForceChange(e) {
   e.preventDefault();
-  const newPass = document.getElementById('force-new-pass').value;
-  const confirmPass = document.getElementById('force-confirm-pass').value;
+  const newPw = document.getElementById('force-new-pass').value;
+  const confirmPw = document.getElementById('force-confirm-pass').value;
   const status = document.getElementById('force-change-status');
 
-  if (!newPass || !confirmPass) {
-    status.textContent = 'Please fill in both fields.';
-    status.style.color = 'var(--color-rose)';
-    return;
+  if (!newPw || !confirmPw) { showError(status, 'Please fill in both fields.'); return; }
+  if (newPw.length < 6) { showError(status, 'Password must be at least 6 characters.'); return; }
+  if (newPw !== confirmPw) { showError(status, 'Passwords do not match.'); return; }
+
+  const result = await api('changePassword', { newPassword: newPw });
+
+  if (result.result === 'success') {
+    currentUser.mustChangePassword = false;
+    saveSession(getToken(), currentUser);
+    showDashboard();
+  } else {
+    showError(status, result.message || 'Failed to change password.');
   }
-
-  if (newPass.length < 6) {
-    status.textContent = 'Password must be at least 6 characters.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  if (newPass !== confirmPass) {
-    status.textContent = 'Passwords do not match.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  // Ensure new password differs from default
-  const newHash = await sha256(newPass);
-  const defaultHash = await sha256(ADMIN_CONFIG.defaultPassword);
-  if (newHash === defaultHash) {
-    status.textContent = 'Please choose a different password than the default.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  updateUser(currentUser.email, {
-    passwordHash: newHash,
-    mustChangePassword: false
-  });
-
-  currentUser.passwordHash = newHash;
-  currentUser.mustChangePassword = false;
-  createSession(currentUser);
-  showDashboard();
 }
 
 // ============================================
@@ -267,56 +179,16 @@ async function submitForceChange(e) {
 
 async function submitForgotPassword(e) {
   e.preventDefault();
-  const emailInput = document.getElementById('forgot-email');
+  const email = document.getElementById('forgot-email').value.trim();
   const status = document.getElementById('forgot-status');
-  const email = emailInput.value.trim().toLowerCase();
 
-  if (!email) {
-    status.textContent = 'Please enter your email address.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
+  if (!email) { showError(status, 'Please enter your email.'); return; }
 
-  const user = getUserByEmail(email);
+  const result = await api('forgot', { email });
 
-  // Always show success message to prevent email enumeration
   status.textContent = 'If an account exists with that email, a reset code has been sent.';
   status.style.color = 'var(--color-teal)';
 
-  if (!user) return;
-
-  // Generate and store reset code
-  const code = generateResetCode();
-  const resets = JSON.parse(localStorage.getItem(RESET_KEY) || '{}');
-  resets[email] = {
-    code: await sha256(code),
-    expiry: Date.now() + RESET_CODE_EXPIRY,
-    attempts: 0
-  };
-  localStorage.setItem(RESET_KEY, JSON.stringify(resets));
-
-  // Send code via Google Apps Script
-  if (SHEETS_CONFIG.enabled && SHEETS_CONFIG.scriptUrl) {
-    try {
-      await fetch(SHEETS_CONFIG.scriptUrl, {
-        method: 'POST',
-        body: JSON.stringify({
-          source: 'password_reset',
-          email: email,
-          code: code,
-          name: user.name
-        }),
-        headers: { 'Content-Type': 'text/plain' }
-      });
-    } catch (err) {
-      console.error('[Admin] Failed to send reset email:', err);
-    }
-  } else {
-    // Fallback: show code in console for development/setup
-    console.log(`[Admin] Reset code for ${email}: ${code}`);
-  }
-
-  // Show the code entry form
   document.getElementById('forgot-step-1').classList.add('hidden');
   document.getElementById('forgot-step-2').classList.remove('hidden');
   document.getElementById('forgot-reset-email').value = email;
@@ -324,87 +196,31 @@ async function submitForgotPassword(e) {
 
 async function submitResetCode(e) {
   e.preventDefault();
-  const email = document.getElementById('forgot-reset-email').value.trim().toLowerCase();
-  const code = document.getElementById('forgot-code').value.trim().toUpperCase();
-  const newPass = document.getElementById('forgot-new-pass').value;
-  const confirmPass = document.getElementById('forgot-confirm-pass').value;
+  const email = document.getElementById('forgot-reset-email').value.trim();
+  const code = document.getElementById('forgot-code').value.trim();
+  const newPw = document.getElementById('forgot-new-pass').value;
+  const confirmPw = document.getElementById('forgot-confirm-pass').value;
   const status = document.getElementById('reset-status');
 
-  if (!code || !newPass || !confirmPass) {
-    status.textContent = 'Please fill in all fields.';
-    status.style.color = 'var(--color-rose)';
-    return;
+  if (!code || !newPw || !confirmPw) { showError(status, 'All fields required.'); return; }
+  if (newPw.length < 6) { showError(status, 'Password must be at least 6 characters.'); return; }
+  if (newPw !== confirmPw) { showError(status, 'Passwords do not match.'); return; }
+
+  const result = await api('resetPassword', { email, code, newPassword: newPw });
+
+  if (result.result === 'success') {
+    status.textContent = 'Password reset! Redirecting...';
+    status.style.color = 'var(--color-teal)';
+    setTimeout(() => {
+      showScreen('login-screen');
+      document.getElementById('login-email').value = email;
+    }, 1500);
+  } else {
+    showError(status, result.message || 'Reset failed.');
   }
-
-  if (newPass.length < 6) {
-    status.textContent = 'Password must be at least 6 characters.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  if (newPass !== confirmPass) {
-    status.textContent = 'Passwords do not match.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  // Validate reset code
-  const resets = JSON.parse(localStorage.getItem(RESET_KEY) || '{}');
-  const resetEntry = resets[email];
-
-  if (!resetEntry) {
-    status.textContent = 'No reset request found. Please start over.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  if (Date.now() > resetEntry.expiry) {
-    delete resets[email];
-    localStorage.setItem(RESET_KEY, JSON.stringify(resets));
-    status.textContent = 'Reset code has expired. Please request a new one.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  resetEntry.attempts = (resetEntry.attempts || 0) + 1;
-  if (resetEntry.attempts > 5) {
-    delete resets[email];
-    localStorage.setItem(RESET_KEY, JSON.stringify(resets));
-    status.textContent = 'Too many attempts. Please request a new code.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  const codeHash = await sha256(code);
-  if (codeHash !== resetEntry.code) {
-    localStorage.setItem(RESET_KEY, JSON.stringify(resets));
-    status.textContent = `Invalid code. ${5 - resetEntry.attempts} attempts remaining.`;
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  // Code valid — update password
-  const newHash = await sha256(newPass);
-  updateUser(email, {
-    passwordHash: newHash,
-    mustChangePassword: false
-  });
-
-  // Clean up reset code
-  delete resets[email];
-  localStorage.setItem(RESET_KEY, JSON.stringify(resets));
-
-  status.textContent = 'Password reset successfully! Redirecting to login...';
-  status.style.color = 'var(--color-teal)';
-
-  setTimeout(() => {
-    showScreen('login-screen');
-    document.getElementById('login-email').value = email;
-  }, 2000);
 }
 
 function showForgotPassword() {
-  // Reset the forgot password form
   document.getElementById('forgot-step-1').classList.remove('hidden');
   document.getElementById('forgot-step-2').classList.add('hidden');
   document.getElementById('forgot-email').value = '';
@@ -414,53 +230,55 @@ function showForgotPassword() {
 }
 
 // ============================================
+// API URL SETUP (first-time)
+// ============================================
+
+function saveApiUrl() {
+  const url = document.getElementById('login-api-url').value.trim();
+  if (!url) return;
+  localStorage.setItem('bloomshine_script_url', url);
+  apiUrl = url;
+  document.getElementById('login-setup').classList.add('hidden');
+  document.getElementById('login-error').classList.add('hidden');
+}
+
+// ============================================
 // SCREEN MANAGEMENT
 // ============================================
 
-function showScreen(screenId) {
-  ['login-screen', 'force-change-screen', 'forgot-screen', 'admin-dashboard'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('hidden', id !== screenId);
+function showScreen(id) {
+  ['login-screen', 'force-change-screen', 'forgot-screen', 'admin-dashboard'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.classList.toggle('hidden', s !== id);
   });
 }
 
 function showDashboard() {
-  const session = getSession();
-  if (session) {
-    currentUser = getUserByEmail(session.email);
-  }
-
-  if (!currentUser) {
-    showScreen('login-screen');
-    return;
-  }
-
   showScreen('admin-dashboard');
 
-  // Update header with user info
-  const userDisplay = document.getElementById('admin-user-display');
-  if (userDisplay) {
-    userDisplay.textContent = currentUser.name;
+  const nameEl = document.getElementById('admin-user-display');
+  const roleEl = document.getElementById('admin-role-display');
+  if (nameEl && currentUser) nameEl.textContent = currentUser.name;
+  if (roleEl && currentUser) {
+    const labels = { developer: 'Developer', owner: 'Owner', staff: 'Staff' };
+    roleEl.textContent = labels[currentUser.role] || currentUser.role;
   }
 
-  const roleDisplay = document.getElementById('admin-role-display');
-  if (roleDisplay) {
-    const labels = { [ROLE_DEVELOPER]: 'Developer', [ROLE_OWNER]: 'Owner', [ROLE_STAFF]: 'Staff' };
-    roleDisplay.textContent = labels[currentUser.role] || currentUser.role;
-  }
-
-  // Show/hide role-gated elements
-  const canManageUsers = currentUser.role === ROLE_DEVELOPER || currentUser.role === ROLE_OWNER;
-  document.querySelectorAll('[data-role="manager"]').forEach(el => {
-    el.classList.toggle('hidden', !canManageUsers);
-  });
+  // Role-based visibility
+  const canManage = currentUser && (currentUser.role === 'developer' || currentUser.role === 'owner');
+  document.querySelectorAll('[data-role="manager"]').forEach(el => el.classList.toggle('hidden', !canManage));
   document.querySelectorAll('[data-role="developer"]').forEach(el => {
-    el.classList.toggle('hidden', currentUser.role !== ROLE_DEVELOPER);
+    el.classList.toggle('hidden', !currentUser || currentUser.role !== 'developer');
   });
 
-  loadAdminSettings();
-  loadDashboardData();
+  loadAllData();
   initInvoiceTab();
+}
+
+function showError(el, msg) {
+  el.textContent = msg;
+  el.style.color = 'var(--color-rose)';
+  el.classList.remove('hidden');
 }
 
 // ============================================
@@ -468,10 +286,7 @@ function showDashboard() {
 // ============================================
 
 function switchTab(tabName) {
-  // Restrict user management to developer + owner
-  if (tabName === 'users' && (!currentUser || (currentUser.role !== ROLE_DEVELOPER && currentUser.role !== ROLE_OWNER))) {
-    return;
-  }
+  if (tabName === 'users' && currentUser && currentUser.role !== 'developer' && currentUser.role !== 'owner') return;
 
   document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -483,336 +298,354 @@ function switchTab(tabName) {
   if (btn) btn.classList.add('active');
 
   if (tabName === 'invoices') initInvoiceTab();
-  if (tabName === 'users') renderUsersTable();
+  if (tabName === 'users') loadUsers();
 }
 
 // ============================================
-// USER MANAGEMENT (Superuser only)
+// DATA LOADING
 // ============================================
 
-function renderUsersTable() {
+async function loadAllData() {
+  const url = localStorage.getItem('bloomshine_script_url');
+  if (!url) return;
+
+  const result = await api('getAll');
+  if (result.result !== 'success') {
+    if (result.code === 'UNAUTHORIZED') { clearSession(); showScreen('login-screen'); }
+    return;
+  }
+
+  // Store globally for contact detail lookups
+  window._crmData = result;
+
+  renderTable('contacts', result.contacts || [], ['Timestamp', 'Name', 'Email', 'Phone', 'Service Interest', 'Status']);
+  renderTable('estimates', result.estimates || [], ['Timestamp', 'Service', 'Sq Ft', 'Frequency', 'Add-Ons', 'Low Estimate', 'High Estimate']);
+  renderTable('contracts', result.contracts || [], ['Timestamp', 'Name', 'Service', 'Frequency', 'Media Release', 'Status']);
+  renderTable('invoices', result.invoices || [], ['Invoice #', 'Date', 'Client Name', 'Service', 'Amount', 'Status']);
+  renderOverview(result);
+}
+
+async function refreshData() {
+  await loadAllData();
+}
+
+// ============================================
+// TABLE RENDERING WITH INLINE EDITING
+// ============================================
+
+function renderTable(tabId, rows, columns) {
+  const tbody = document.getElementById(`${tabId}-table-body`);
+  if (!tbody) return;
+
+  // Update stat counters
+  const stat = document.getElementById(`stat-${tabId}`);
+  if (stat) stat.textContent = rows.length;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${columns.length + 1}" class="px-4 py-8 text-center text-gray-400 italic">No data yet.</td></tr>`;
+    return;
+  }
+
+  // Sort: newest first (by Timestamp or Date)
+  const dateCol = rows[0].Timestamp !== undefined ? 'Timestamp' : (rows[0].Date !== undefined ? 'Date' : null);
+  if (dateCol) {
+    rows.sort((a, b) => new Date(b[dateCol] || 0) - new Date(a[dateCol] || 0));
+  }
+
+  tbody.innerHTML = rows.map(row => {
+    const cells = columns.map(col => {
+      var val = row[col] !== undefined ? row[col] : '';
+      // Format dates
+      if (col === 'Timestamp' || col === 'Signed Date') val = formatDate(val);
+      // Format currency
+      if (col === 'Low Estimate' || col === 'High Estimate' || col === 'Amount') val = val ? '$' + val : '';
+      // Status badge
+      if (col === 'Status') return `<td class="px-4 py-3"><span class="status-badge status-${(val || 'new').toLowerCase()}">${esc(val || 'New')}</span></td>`;
+      // Email link
+      if (col === 'Email') return `<td class="px-4 py-3"><a href="mailto:${esc(val)}" class="text-teal hover:underline text-sm">${esc(val)}</a></td>`;
+      // Phone link
+      if (col === 'Phone') return `<td class="px-4 py-3"><a href="tel:${esc(val)}" class="text-teal hover:underline">${esc(val)}</a></td>`;
+      // Clickable contact name
+      if ((col === 'Name' || col === 'Client Name') && tabId === 'contacts') {
+        return `<td class="px-4 py-3 font-medium"><button onclick="openContactDetail(${row._row})" class="text-teal hover:underline font-medium text-left">${esc(val)}</button></td>`;
+      }
+      // Amount formatting
+      if (col === 'Amount') return `<td class="px-4 py-3 font-semibold text-sm">$${esc(String(val || 0))}</td>`;
+      return `<td class="px-4 py-3 text-sm">${esc(val)}</td>`;
+    }).join('');
+
+    const sheetMap = { contacts: 'Contacts', estimates: 'Estimates', contracts: 'Contracts', invoices: 'Invoices' };
+    const editBtn = `<td class="px-4 py-3">
+      <button onclick="openEditModal('${sheetMap[tabId]}', ${row._row})" class="text-xs text-teal hover:underline">Edit</button>
+    </td>`;
+
+    // Invoice row highlighting based on payment status
+    let rowClass = 'border-t border-gray-100 hover:bg-cream/50 transition-colors';
+    if (tabId === 'invoices') {
+      const status = row.Status || row['Status'] || '';
+      if (status === 'Paid') rowClass += ' bg-green-50';
+      else if (status === 'Overdue') rowClass += ' bg-red-50';
+      else if (status === 'Sent') rowClass += ' bg-yellow-50';
+    }
+
+    return `<tr class="${rowClass}">${cells}${editBtn}</tr>`;
+  }).join('');
+}
+
+function renderOverview(data) {
+  const contacts = data.contacts || [];
+  const estimates = data.estimates || [];
+  const contracts = data.contracts || [];
+  const invoices = data.invoices || [];
+
+  setText('stat-contacts', contacts.length);
+  setText('stat-estimates', estimates.length);
+  setText('stat-contracts', contracts.length);
+
+  // Recent activity
+  const container = document.getElementById('recent-activity');
+  if (!container) return;
+
+  const all = [];
+  contacts.forEach(r => all.push({ type: 'contact', date: r.Timestamp, name: r.Name, detail: r['Service Interest'] || 'General' }));
+  estimates.forEach(r => all.push({ type: 'estimate', date: r.Timestamp, name: 'Visitor', detail: `${r.Service} — $${r['Low Estimate']}–$${r['High Estimate']}` }));
+  contracts.forEach(r => all.push({ type: 'contract', date: r.Timestamp, name: r.Name, detail: `${r.Service} (${r.Frequency})` }));
+
+  all.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const recent = all.slice(0, 10);
+
+  if (recent.length === 0) {
+    container.innerHTML = '<p class="text-gray-400 text-sm italic">No activity yet.</p>';
+    return;
+  }
+
+  const icons = {
+    contact: { bg: 'var(--color-blush-light)', cls: 'text-rose', l: 'C' },
+    estimate: { bg: 'var(--color-sage-light)', cls: 'text-teal', l: 'E' },
+    contract: { bg: 'var(--color-cream)', cls: 'text-gold', l: 'A' }
+  };
+
+  container.innerHTML = recent.map(item => {
+    const ic = icons[item.type];
+    return `
+      <div class="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/50">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:${ic.bg}">
+          <span class="text-xs font-bold ${ic.cls}">${ic.l}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium truncate">${esc(item.name)}</p>
+          <p class="text-xs text-gray-400 truncate">${esc(item.detail)}</p>
+        </div>
+        <span class="text-xs text-gray-400">${formatDate(item.date)}</span>
+      </div>`;
+  }).join('');
+}
+
+// ============================================
+// INLINE EDIT MODAL
+// ============================================
+
+let editContext = {};
+
+async function openEditModal(sheetName, rowNum) {
+  editContext = { sheet: sheetName, row: rowNum };
+
+  // Fetch fresh row data
+  const result = await api(`get${sheetName.replace(/ /g, '')}`);
+  if (result.result !== 'success') return;
+
+  const rows = result.data || [];
+  const rowData = rows.find(r => r._row === rowNum);
+  if (!rowData) return;
+
+  const modal = document.getElementById('edit-modal');
+  const container = document.getElementById('edit-fields');
+  const title = document.getElementById('edit-modal-title');
+
+  title.textContent = `Edit ${sheetName} — Row ${rowNum}`;
+
+  // Build form fields (skip _row and Timestamp)
+  const skipFields = ['_row', 'Timestamp', 'Password Hash'];
+  container.innerHTML = Object.keys(rowData).filter(k => skipFields.indexOf(k) < 0).map(key => {
+    const val = rowData[key] !== undefined && rowData[key] !== null ? rowData[key] : '';
+    return `
+      <div>
+        <label class="form-label">${esc(key)}</label>
+        <input type="text" class="form-input edit-field" data-field="${esc(key)}" value="${esc(String(val))}">
+      </div>`;
+  }).join('');
+
+  // Update delete/archive button based on context
+  const deleteBtn = document.getElementById('edit-delete-btn');
+  if (deleteBtn) {
+    if (sheetName === 'Invoices') {
+      deleteBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg> Archive Invoice';
+      deleteBtn.style.background = '#D97706';
+      deleteBtn.onmouseover = function() { this.style.background = '#B45309'; };
+      deleteBtn.onmouseout = function() { this.style.background = '#D97706'; };
+    } else {
+      deleteBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> Delete Record';
+      deleteBtn.style.background = '#DC3545';
+      deleteBtn.onmouseover = function() { this.style.background = '#B02A37'; };
+      deleteBtn.onmouseout = function() { this.style.background = '#DC3545'; };
+    }
+  }
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+async function saveEdit() {
+  const fields = document.querySelectorAll('.edit-field');
+  const updates = {};
+  fields.forEach(f => { updates[f.dataset.field] = f.value; });
+
+  const btn = document.getElementById('edit-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const result = await api('updateRow', { sheet: editContext.sheet, row: editContext.row, updates });
+
+  btn.disabled = false;
+  btn.textContent = 'Save Changes';
+
+  if (result.result === 'success') {
+    closeEditModal();
+    await loadAllData();
+  } else {
+    alert(result.message || 'Failed to save.');
+  }
+}
+
+async function deleteEditRow() {
+  // Invoices cannot be deleted — only archived (status set to Void)
+  if (editContext.sheet === 'Invoices') {
+    if (!confirm('Archive this invoice? It will be marked as Void but preserved for records.')) return;
+    const result = await api('updateRow', { sheet: 'Invoices', row: editContext.row, updates: { Status: 'Void' } });
+    if (result.result === 'success') { closeEditModal(); await loadAllData(); }
+    else alert(result.message || 'Failed to archive.');
+    return;
+  }
+
+  if (!confirm('Delete this record? This cannot be undone.')) return;
+  const result = await api('deleteRow', { sheet: editContext.sheet, row: editContext.row });
+  if (result.result === 'success') { closeEditModal(); await loadAllData(); }
+  else alert(result.message || 'Failed to delete.');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+async function loadUsers() {
+  const result = await api('getUsers');
+  if (result.result !== 'success') return;
+
   const tbody = document.getElementById('users-table-body');
   if (!tbody) return;
 
-  const users = getUsers() || [];
+  const roleBadge = { developer: 'status-booked', owner: 'status-contacted', staff: 'status-completed' };
+  const roleLabel = { developer: 'Developer', owner: 'Owner', staff: 'Staff' };
 
-  const roleBadgeClass = {
-    [ROLE_DEVELOPER]: 'status-booked',
-    [ROLE_OWNER]: 'status-contacted',
-    [ROLE_STAFF]: 'status-completed'
-  };
-
-  const roleLabels = {
-    [ROLE_DEVELOPER]: 'Developer',
-    [ROLE_OWNER]: 'Owner',
-    [ROLE_STAFF]: 'Staff'
-  };
-
-  tbody.innerHTML = users.map(user => {
-    const isSelf = user.email === currentUser.email;
-    const isProtected = user.protected && currentUser.role !== ROLE_DEVELOPER;
-    const canModify = !isSelf && !isProtected;
-
+  tbody.innerHTML = (result.users || []).map(u => {
+    const isSelf = currentUser && u.email === currentUser.email;
+    const isProtected = u.protected === 'true' && currentUser.role !== 'developer';
     let actions = '';
-    if (isSelf) {
-      actions = '<span class="text-xs text-gray-400">You</span>';
-    } else if (isProtected) {
-      actions = '<span class="text-xs text-gray-400">Protected</span>';
-    } else {
-      actions = `
-        <button onclick="resetUserPassword('${escHtml(user.email)}')" class="text-xs text-teal hover:underline mr-2">Reset PW</button>
-        <button onclick="removeUser('${escHtml(user.email)}')" class="text-xs text-rose hover:underline">Remove</button>
-      `;
-    }
+    if (isSelf) actions = '<span class="text-xs text-gray-400">You</span>';
+    else if (isProtected) actions = '<span class="text-xs text-gray-400">Protected</span>';
+    else actions = `
+      <button onclick="resetUserPw('${esc(u.email)}')" class="text-xs text-teal hover:underline mr-2">Reset PW</button>
+      <button onclick="removeUser('${esc(u.email)}')" class="text-xs text-rose hover:underline">Remove</button>`;
 
     return `
-      <tr class="border-t border-gray-100 hover:bg-cream/50 transition-colors">
-        <td class="px-4 py-3 font-medium">${escHtml(user.name)}</td>
-        <td class="px-4 py-3">
-          <a href="mailto:${escHtml(user.email)}" class="text-teal hover:underline text-sm">${escHtml(user.email)}</a>
-        </td>
-        <td class="px-4 py-3">
-          <span class="status-badge ${roleBadgeClass[user.role] || 'status-completed'}">${roleLabels[user.role] || user.role}</span>
-        </td>
-        <td class="px-4 py-3 text-xs text-gray-400">${user.mustChangePassword ? 'Pending' : 'Set'}</td>
-        <td class="px-4 py-3 text-xs text-gray-400">${formatDate(user.createdAt)}</td>
+      <tr class="border-t border-gray-100 hover:bg-cream/50">
+        <td class="px-4 py-3 font-medium">${esc(u.name)}</td>
+        <td class="px-4 py-3"><a href="mailto:${esc(u.email)}" class="text-teal hover:underline text-sm">${esc(u.email)}</a></td>
+        <td class="px-4 py-3"><span class="status-badge ${roleBadge[u.role] || ''}">${roleLabel[u.role] || u.role}</span></td>
+        <td class="px-4 py-3 text-xs text-gray-400">${u.mustChangePassword === 'Yes' ? 'Pending' : 'Set'}</td>
+        <td class="px-4 py-3 text-xs text-gray-400">${formatDate(u.created)}</td>
         <td class="px-4 py-3">${actions}</td>
-      </tr>
-    `;
+      </tr>`;
   }).join('');
 }
 
 async function addNewUser(e) {
   e.preventDefault();
   const name = document.getElementById('new-user-name').value.trim();
-  const email = document.getElementById('new-user-email').value.trim().toLowerCase();
+  const email = document.getElementById('new-user-email').value.trim();
   const role = document.getElementById('new-user-role').value;
   const status = document.getElementById('add-user-status');
 
-  if (!name || !email) {
-    status.textContent = 'Name and email are required.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
+  if (!name || !email) { showError(status, 'Name and email required.'); return; }
 
-  if (getUserByEmail(email)) {
-    status.textContent = 'A user with that email already exists.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
+  const result = await api('addUser', { name, email, role });
 
-  const defaultHash = await sha256(ADMIN_CONFIG.defaultPassword);
-  const users = getUsers() || [];
-  users.push({
-    email,
-    name,
-    role,
-    passwordHash: defaultHash,
-    mustChangePassword: true,
-    createdAt: new Date().toISOString()
-  });
-  saveUsers(users);
-
-  status.textContent = 'User added. They will be prompted to set a password on first login.';
-  status.style.color = 'var(--color-teal)';
-
-  document.getElementById('new-user-name').value = '';
-  document.getElementById('new-user-email').value = '';
-  renderUsersTable();
-}
-
-async function resetUserPassword(email) {
-  if (!confirm(`Reset password for ${email}? They will be prompted to set a new one on next login.`)) return;
-
-  const defaultHash = await sha256(ADMIN_CONFIG.defaultPassword);
-  updateUser(email, {
-    passwordHash: defaultHash,
-    mustChangePassword: true
-  });
-  renderUsersTable();
-  alert(`Password reset. User will be prompted to change it on next login.`);
-}
-
-function removeUser(email) {
-  if (!confirm(`Remove user ${email}? This cannot be undone.`)) return;
-
-  const users = getUsers() || [];
-  const filtered = users.filter(u => u.email.toLowerCase() !== email.toLowerCase());
-  saveUsers(filtered);
-  renderUsersTable();
-}
-
-// ============================================
-// SETTINGS — Change Own Password
-// ============================================
-
-async function changePassword() {
-  const current = document.getElementById('settings-current-pass').value;
-  const newPass = document.getElementById('settings-new-pass').value;
-  const confirm = document.getElementById('settings-confirm-pass').value;
-  const status = document.getElementById('passcode-status');
-
-  if (!current || !newPass || !confirm) {
-    status.textContent = 'Please fill in all fields.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  if (newPass.length < 6) {
-    status.textContent = 'Password must be at least 6 characters.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  if (newPass !== confirm) {
-    status.textContent = 'New passwords do not match.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  const currentHash = await sha256(current);
-  if (currentHash !== currentUser.passwordHash) {
-    status.textContent = 'Current password is incorrect.';
-    status.style.color = 'var(--color-rose)';
-    return;
-  }
-
-  const newHash = await sha256(newPass);
-  updateUser(currentUser.email, { passwordHash: newHash });
-  currentUser.passwordHash = newHash;
-
-  status.textContent = 'Password updated successfully!';
-  status.style.color = 'var(--color-teal)';
-
-  document.getElementById('settings-current-pass').value = '';
-  document.getElementById('settings-new-pass').value = '';
-  document.getElementById('settings-confirm-pass').value = '';
-}
-
-// ============================================
-// DATA LOADING FROM GOOGLE SHEETS
-// ============================================
-
-async function loadDashboardData() {
-  if (!SHEETS_CONFIG.enabled || !SHEETS_CONFIG.scriptUrl) return;
-
-  try {
-    const response = await fetch(`${SHEETS_CONFIG.scriptUrl}?action=getAll`);
-    const data = await response.json();
-
-    if (data.result === 'success') {
-      renderContactsTable(data.contacts || []);
-      renderEstimatesTable(data.estimates || []);
-      renderContractsTable(data.contracts || []);
-      renderOverviewStats(data);
-      renderRecentActivity(data);
-    }
-  } catch (err) {
-    console.error('[Admin] Failed to load data:', err);
+  if (result.result === 'success') {
+    status.textContent = `User added. Temp password: ${result.tempPassword}`;
+    status.style.color = 'var(--color-teal)';
+    document.getElementById('new-user-name').value = '';
+    document.getElementById('new-user-email').value = '';
+    loadUsers();
+  } else {
+    showError(status, result.message || 'Failed.');
   }
 }
 
-async function refreshData() {
-  await loadDashboardData();
-}
-
-// ============================================
-// TABLE RENDERERS
-// ============================================
-
-function renderContactsTable(contacts) {
-  const tbody = document.getElementById('contacts-table-body');
-  if (!tbody) return;
-
-  document.getElementById('stat-contacts').textContent = contacts.length;
-
-  if (contacts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">No contacts yet.</td></tr>';
-    return;
+async function resetUserPw(email) {
+  if (!confirm(`Reset password for ${email}?`)) return;
+  const result = await api('resetUserPw', { email });
+  if (result.result === 'success') {
+    alert(`Password reset. Temp password: ${result.tempPassword}\n\nShare this with the user securely.`);
+    loadUsers();
+  } else {
+    alert(result.message || 'Failed.');
   }
-
-  tbody.innerHTML = contacts.reverse().map(row => `
-    <tr class="border-t border-gray-100 hover:bg-cream/50 transition-colors">
-      <td class="px-4 py-3 text-gray-500 text-xs">${formatDate(row[0])}</td>
-      <td class="px-4 py-3 font-medium">${escHtml(row[1])}</td>
-      <td class="px-4 py-3"><a href="mailto:${escHtml(row[2])}" class="text-teal hover:underline">${escHtml(row[2])}</a></td>
-      <td class="px-4 py-3"><a href="tel:${escHtml(row[3])}" class="text-teal hover:underline">${escHtml(row[3])}</a></td>
-      <td class="px-4 py-3 text-gray-600">${escHtml(row[4])}</td>
-      <td class="px-4 py-3"><span class="status-badge status-${(row[6] || 'new').toLowerCase()}">${escHtml(row[6] || 'New')}</span></td>
-    </tr>
-  `).join('');
 }
 
-function renderEstimatesTable(estimates) {
-  const tbody = document.getElementById('estimates-table-body');
-  if (!tbody) return;
-
-  document.getElementById('stat-estimates').textContent = estimates.length;
-
-  if (estimates.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">No estimates yet.</td></tr>';
-    return;
+async function removeUser(email) {
+  if (!confirm(`Remove ${email}? This cannot be undone.`)) return;
+  const result = await api('removeUser', { email });
+  if (result.result === 'success') {
+    loadUsers();
+  } else {
+    alert(result.message || 'Failed.');
   }
-
-  tbody.innerHTML = estimates.reverse().map(row => `
-    <tr class="border-t border-gray-100 hover:bg-cream/50 transition-colors">
-      <td class="px-4 py-3 text-gray-500 text-xs">${formatDate(row[0])}</td>
-      <td class="px-4 py-3 font-medium">${escHtml(row[1])}</td>
-      <td class="px-4 py-3">${escHtml(row[2])}</td>
-      <td class="px-4 py-3">${escHtml(row[3])}</td>
-      <td class="px-4 py-3 text-gray-500 text-xs">${escHtml(row[4])}</td>
-      <td class="px-4 py-3 font-semibold text-rose">$${escHtml(row[5])} – $${escHtml(row[6])}</td>
-    </tr>
-  `).join('');
-}
-
-function renderContractsTable(contracts) {
-  const tbody = document.getElementById('contracts-table-body');
-  if (!tbody) return;
-
-  document.getElementById('stat-contracts').textContent = contracts.length;
-
-  if (contracts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">No contracts yet.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = contracts.reverse().map(row => `
-    <tr class="border-t border-gray-100 hover:bg-cream/50 transition-colors">
-      <td class="px-4 py-3 text-gray-500 text-xs">${formatDate(row[0])}</td>
-      <td class="px-4 py-3 font-medium">${escHtml(row[1])}</td>
-      <td class="px-4 py-3">${escHtml(row[5])}</td>
-      <td class="px-4 py-3">${escHtml(row[6])}</td>
-      <td class="px-4 py-3 text-xs">${row[7] === 'yes' ? 'Consented' : 'Declined'}</td>
-      <td class="px-4 py-3"><span class="status-badge status-${(row[10] || 'new').toLowerCase()}">${escHtml(row[10] || 'New')}</span></td>
-    </tr>
-  `).join('');
-}
-
-function renderOverviewStats(data) {
-  document.getElementById('stat-contacts').textContent = (data.contacts || []).length;
-  document.getElementById('stat-estimates').textContent = (data.estimates || []).length;
-  document.getElementById('stat-contracts').textContent = (data.contracts || []).length;
-}
-
-function renderRecentActivity(data) {
-  const container = document.getElementById('recent-activity');
-  if (!container) return;
-
-  const all = [];
-  (data.contacts || []).forEach(row => {
-    all.push({ type: 'contact', date: row[0], name: row[1], detail: row[4] || 'General inquiry' });
-  });
-  (data.estimates || []).forEach(row => {
-    all.push({ type: 'estimate', date: row[0], name: 'Website visitor', detail: `${row[1]} — $${row[5]}–$${row[6]}` });
-  });
-  (data.contracts || []).forEach(row => {
-    all.push({ type: 'contract', date: row[0], name: row[1], detail: `${row[5]} (${row[6]})` });
-  });
-
-  all.sort((a, b) => new Date(b.date) - new Date(a.date));
-  const recent = all.slice(0, 10);
-
-  if (recent.length === 0) {
-    container.innerHTML = '<p class="text-gray-400 text-sm italic">No activity yet. Submissions will appear here.</p>';
-    return;
-  }
-
-  const typeIcons = {
-    contact: { bg: 'var(--color-blush-light)', color: 'text-rose', label: 'Contact' },
-    estimate: { bg: 'var(--color-sage-light)', color: 'text-teal', label: 'Estimate' },
-    contract: { bg: 'var(--color-cream)', color: 'text-gold', label: 'Contract' }
-  };
-
-  container.innerHTML = recent.map(item => {
-    const icon = typeIcons[item.type];
-    return `
-      <div class="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/50 transition-colors">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: ${icon.bg};">
-          <span class="text-xs font-bold ${icon.color}">${icon.label.charAt(0)}</span>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium truncate">${escHtml(item.name)}</p>
-          <p class="text-xs text-gray-400 truncate">${escHtml(item.detail)}</p>
-        </div>
-        <span class="text-xs text-gray-400 flex-shrink-0">${formatDate(item.date)}</span>
-      </div>
-    `;
-  }).join('');
 }
 
 // ============================================
 // SETTINGS
 // ============================================
 
-function loadAdminSettings() {
-  const savedUrl = localStorage.getItem('bloomshine_script_url');
-  if (savedUrl) {
-    SHEETS_CONFIG.scriptUrl = savedUrl;
-    SHEETS_CONFIG.enabled = true;
-    const urlInput = document.getElementById('settings-script-url');
-    if (urlInput) urlInput.value = savedUrl;
+async function changePassword() {
+  const current = document.getElementById('settings-current-pass').value;
+  const newPw = document.getElementById('settings-new-pass').value;
+  const confirm = document.getElementById('settings-confirm-pass').value;
+  const status = document.getElementById('passcode-status');
+
+  if (!current || !newPw || !confirm) { showError(status, 'All fields required.'); return; }
+  if (newPw.length < 6) { showError(status, 'Minimum 6 characters.'); return; }
+  if (newPw !== confirm) { showError(status, 'Passwords do not match.'); return; }
+
+  const result = await api('changePassword', { currentPassword: current, newPassword: newPw });
+
+  if (result.result === 'success') {
+    status.textContent = 'Password updated!';
+    status.style.color = 'var(--color-teal)';
+    ['settings-current-pass', 'settings-new-pass', 'settings-confirm-pass'].forEach(id => document.getElementById(id).value = '');
+  } else {
+    showError(status, result.message || 'Failed.');
   }
+}
+
+function loadAdminSettings() {
+  apiUrl = localStorage.getItem('bloomshine_script_url') || '';
+  const urlInput = document.getElementById('settings-script-url');
+  if (urlInput && apiUrl) urlInput.value = apiUrl;
 }
 
 function saveSettings() {
@@ -821,45 +654,33 @@ function saveSettings() {
 
   if (url) {
     localStorage.setItem('bloomshine_script_url', url);
-    SHEETS_CONFIG.scriptUrl = url;
-    SHEETS_CONFIG.enabled = true;
-    status.textContent = 'Settings saved. Google Sheets connection is active.';
+    apiUrl = url;
+    // Also update sheets.js config for public site forms
+    if (typeof SHEETS_CONFIG !== 'undefined') {
+      SHEETS_CONFIG.scriptUrl = url;
+      SHEETS_CONFIG.enabled = true;
+    }
+    status.textContent = 'Saved.';
     status.style.color = 'var(--color-teal)';
-    loadDashboardData();
   } else {
     localStorage.removeItem('bloomshine_script_url');
-    SHEETS_CONFIG.scriptUrl = '';
-    SHEETS_CONFIG.enabled = false;
-    status.textContent = 'Connection removed.';
+    apiUrl = '';
+    status.textContent = 'Removed.';
     status.style.color = 'var(--color-gray-400)';
   }
 }
 
 async function testConnection() {
   const status = document.getElementById('settings-status');
-  status.textContent = 'Testing connection...';
+  status.textContent = 'Testing...';
   status.style.color = 'var(--color-gray-400)';
 
-  try {
-    const url = document.getElementById('settings-script-url').value.trim();
-    if (!url) {
-      status.textContent = 'Please enter an Apps Script URL first.';
-      status.style.color = 'var(--color-rose)';
-      return;
-    }
-
-    const response = await fetch(`${url}?action=ping`);
-    const data = await response.json();
-
-    if (data.result === 'pong') {
-      status.textContent = 'Connection successful!';
-      status.style.color = 'var(--color-teal)';
-    } else {
-      status.textContent = 'Connected, but unexpected response.';
-      status.style.color = 'var(--color-gold)';
-    }
-  } catch (err) {
-    status.textContent = `Connection failed: ${err.message}`;
+  const result = await api('ping');
+  if (result.result === 'pong') {
+    status.textContent = 'Connection successful!';
+    status.style.color = 'var(--color-teal)';
+  } else {
+    status.textContent = 'Failed: ' + (result.message || 'Unknown error');
     status.style.color = 'var(--color-rose)';
   }
 }
@@ -869,59 +690,201 @@ async function testConnection() {
 // ============================================
 
 function initInvoiceTab() {
-  const invNumber = document.getElementById('inv-number');
-  const invDate = document.getElementById('inv-date');
+  const num = document.getElementById('inv-number');
+  const date = document.getElementById('inv-date');
+  if (num && !num.value) {
+    const d = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    num.value = `BS-${d}-001`;
+  }
+  if (date && !date.value) date.value = new Date().toISOString().slice(0, 10);
+  if (typeof invoiceLineItems !== 'undefined' && invoiceLineItems.length === 0) addInvoiceLineItem();
+}
 
-  if (invNumber && !invNumber.value) {
-    const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-    invNumber.value = `BS-${dateStr}-001`;
+function openCreateInvoice() {
+  document.getElementById('create-invoice-form').classList.remove('hidden');
+  initInvoiceTab();
+}
+
+function closeCreateInvoice() {
+  document.getElementById('create-invoice-form').classList.add('hidden');
+}
+
+// ============================================
+// CONTACT DETAIL MODAL
+// ============================================
+
+function openContactDetail(rowNum) {
+  const data = window._crmData;
+  if (!data) return;
+
+  // Find the contact
+  const contact = (data.contacts || []).find(c => c._row === rowNum);
+  if (!contact) return;
+
+  const name = contact.Name || '';
+  const email = (contact.Email || '').toLowerCase();
+  const phone = contact.Phone || '';
+
+  // Find related records by name or email
+  const relatedContracts = (data.contracts || []).filter(c =>
+    (c.Name && c.Name.toLowerCase() === name.toLowerCase()) ||
+    (c.Email && c.Email.toLowerCase() === email)
+  );
+
+  const relatedInvoices = (data.invoices || []).filter(inv =>
+    (inv['Client Name'] && inv['Client Name'].toLowerCase() === name.toLowerCase()) ||
+    (inv['Client Email'] && inv['Client Email'].toLowerCase() === email)
+  );
+
+  const relatedEstimates = (data.estimates || []).filter(est => {
+    // Estimates don't have names, so match by timestamp proximity or service
+    return false; // Stub — estimates are anonymous from the public form
+  });
+
+  // Build the modal content
+  let html = `
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h3 class="font-heading text-teal text-2xl font-bold">${esc(name)}</h3>
+        <p class="text-gray-400 text-sm">${esc(contact['Service Interest'] || 'General inquiry')}</p>
+      </div>
+      <span class="status-badge status-${(contact.Status || 'new').toLowerCase()}">${esc(contact.Status || 'New')}</span>
+    </div>
+
+    <!-- Contact Info -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div class="bg-cream rounded-lg p-4">
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Email</p>
+        <a href="mailto:${esc(email)}" class="text-teal hover:underline font-medium">${esc(email || '—')}</a>
+      </div>
+      <div class="bg-cream rounded-lg p-4">
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Phone</p>
+        <a href="tel:${esc(phone)}" class="text-teal hover:underline font-medium">${esc(phone || '—')}</a>
+      </div>
+    </div>
+
+    <!-- Message -->
+    ${contact.Message ? `
+    <div class="mb-6">
+      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Message</p>
+      <div class="bg-cream rounded-lg p-4 text-sm text-gray-600">${esc(contact.Message)}</div>
+    </div>` : ''}
+
+    <!-- Notes -->
+    <div class="mb-6">
+      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Notes</p>
+      <div class="bg-cream rounded-lg p-4 text-sm text-gray-600">${esc(contact.Notes || 'No notes yet.')}</div>
+    </div>
+
+    <!-- Follow-up -->
+    <div class="mb-6">
+      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Follow-Up Date</p>
+      <p class="text-sm">${contact['Follow-Up Date'] ? formatDate(contact['Follow-Up Date']) : 'Not set'}</p>
+    </div>
+
+    <p class="text-xs text-gray-400 mb-2">First contact: ${formatDate(contact.Timestamp)}</p>
+
+    <hr class="my-6 border-gray-200">
+  `;
+
+  // Contracts section
+  html += `<h4 class="font-heading text-teal font-semibold mb-3">Contracts (${relatedContracts.length})</h4>`;
+  if (relatedContracts.length > 0) {
+    html += '<div class="space-y-2 mb-6">';
+    relatedContracts.forEach(c => {
+      html += `
+        <div class="bg-cream rounded-lg p-3 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium">${esc(c.Service)} — ${esc(c.Frequency)}</p>
+            <p class="text-xs text-gray-400">${formatDate(c.Timestamp)}</p>
+          </div>
+          <span class="status-badge status-${(c.Status || 'new').toLowerCase()}">${esc(c.Status || 'New')}</span>
+        </div>`;
+    });
+    html += '</div>';
+  } else {
+    html += '<p class="text-sm text-gray-400 italic mb-6">No contracts on file.</p>';
   }
 
-  if (invDate && !invDate.value) {
-    invDate.value = new Date().toISOString().slice(0, 10);
+  // Invoices section
+  html += `<h4 class="font-heading text-teal font-semibold mb-3">Invoices (${relatedInvoices.length})</h4>`;
+  if (relatedInvoices.length > 0) {
+    html += '<div class="space-y-2 mb-6">';
+    relatedInvoices.forEach(inv => {
+      const isPaid = inv.Status === 'Paid';
+      const bgClass = isPaid ? 'border-l-4' : 'border-l-4';
+      const borderColor = isPaid ? 'border-green-500' : (inv.Status === 'Overdue' ? 'border-red-500' : 'border-yellow-500');
+      html += `
+        <div class="bg-cream rounded-lg p-3 ${bgClass} ${borderColor} flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium">${esc(inv['Invoice #'])} — ${esc(inv.Service)}</p>
+            <p class="text-xs text-gray-400">${formatDate(inv.Date)}</p>
+          </div>
+          <div class="text-right">
+            <p class="font-semibold ${isPaid ? 'text-green-700' : 'text-rose'}">$${esc(String(inv.Amount || 0))}</p>
+            <span class="status-badge status-${(inv.Status || 'draft').toLowerCase()}">${esc(inv.Status || 'Draft')}</span>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+  } else {
+    html += '<p class="text-sm text-gray-400 italic mb-6">No invoices on file.</p>';
   }
 
-  if (typeof invoiceLineItems !== 'undefined' && invoiceLineItems.length === 0) {
-    addInvoiceLineItem();
-  }
+  // Edit button
+  html += `
+    <div class="mt-6 flex gap-3">
+      <button onclick="closeContactDetail(); openEditModal('Contacts', ${rowNum})" class="btn-primary text-xs px-4 py-2">Edit Contact</button>
+      <button onclick="closeContactDetail()" class="btn-secondary text-xs px-4 py-2">Close</button>
+    </div>`;
+
+  document.getElementById('contact-detail-content').innerHTML = html;
+  document.getElementById('contact-detail-modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeContactDetail() {
+  document.getElementById('contact-detail-modal').classList.remove('active');
+  document.body.style.overflow = '';
 }
 
 // ============================================
 // UTILITIES
 // ============================================
 
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch (e) {
-    return dateStr;
-  }
+function formatDate(val) {
+  if (!val) return '—';
+  try { return new Date(val).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  catch (e) { return String(val); }
 }
 
-function escHtml(str) {
+function esc(str) {
   if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = String(str);
-  return div.innerHTML;
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
 }
 
 // ============================================
 // INIT
 // ============================================
 
-document.addEventListener('DOMContentLoaded', async () => {
-  await seedDefaultUsers();
+document.addEventListener('DOMContentLoaded', () => {
+  loadAdminSettings();
 
-  const session = getSession();
-  if (session) {
-    currentUser = getUserByEmail(session.email);
-    if (currentUser) {
-      showDashboard();
-      return;
+  const session = loadSession();
+  if (session && session.token) {
+    showDashboard();
+  } else {
+    showScreen('login-screen');
+    // Show API URL field if not configured
+    if (!localStorage.getItem('bloomshine_script_url')) {
+      document.getElementById('login-setup').classList.remove('hidden');
     }
   }
-
-  showScreen('login-screen');
 });
