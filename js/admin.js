@@ -346,10 +346,14 @@ function renderTable(tabId, rows, columns) {
     return;
   }
 
-  // Sort: newest first (by Timestamp or Date)
+  // Sort by date — invoices oldest-first; all others newest-first
   const dateCol = rows[0].Timestamp !== undefined ? 'Timestamp' : (rows[0].Date !== undefined ? 'Date' : null);
   if (dateCol) {
-    rows.sort((a, b) => new Date(b[dateCol] || 0) - new Date(a[dateCol] || 0));
+    if (tabId === 'invoices') {
+      rows.sort((a, b) => new Date(a[dateCol] || 0) - new Date(b[dateCol] || 0));
+    } else {
+      rows.sort((a, b) => new Date(b[dateCol] || 0) - new Date(a[dateCol] || 0));
+    }
   }
 
   tbody.innerHTML = rows.map(row => {
