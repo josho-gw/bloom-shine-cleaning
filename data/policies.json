@@ -1,0 +1,59 @@
+{
+  "policies": [
+    {
+      "id": "frequency",
+      "title": "Frequency of Service",
+      "content": "We offer Weekly, Biweekly, Monthly, and One-Time service options. This agreement may be signed manually through paper copy, or signed electronically through email. Agreement must be returned to the Business for valid record. A copy will be provided."
+    },
+    {
+      "id": "payment",
+      "title": "Payment Methods & Terms",
+      "content": "Payments will be made to the Business via an approved payment method: Cash App, Venmo, Cash, or by any other payment method determined by the Business. We do not accept credit cards. We require payment before or at time of service. Payments after service will need to be requested by the client and approved by the owner before the scheduled appointment."
+    },
+    {
+      "id": "cancellation",
+      "title": "Cancellation & Rescheduling Policy",
+      "content": "We understand that life can sometimes take unexpected turns, and you may need to cancel your appointment. If you need to cancel or reschedule your appointment, please notify us more than 72 hours before your scheduled cleaning. If you must cancel within 24 hours, we charge a fee of $25. This is to partially cover the cost of reserving your time slot and to compensate the cleaners who have set aside time for your service. We have a one-time grace period for day-of cancellations. After the one-time grace period, we will charge 50% of the quoted price for the cleaning job. This is because our cleaners have already allocated their day to serve you and it is challenging for them to fill that time slot at such short notice. To reschedule or cancel your appointment, please reach out to us at bloom.shinecleaningservices@yahoo.com or call 706-363-5315."
+    },
+    {
+      "id": "termination",
+      "title": "Termination of Contract",
+      "content": "Business requires 2 weeks notice if the Client decides to terminate the contract. If one of the parties chooses to end the contract prior to the project completion, the Client is responsible for paying for all works and costs incurred up until that date."
+    },
+    {
+      "id": "licensing",
+      "title": "Licensing",
+      "content": "This business promises that it holds all licenses necessary to perform the work, that such licenses are valid and effective as of the date any work is performed or services provided, and that all work provided will be done in compliance with all applicable federal, state, or local laws and regulations."
+    },
+    {
+      "id": "liability",
+      "title": "Limit of Liability",
+      "content": "Client agrees that the maximum amount of damages she/he is entitled to in any claim of or relating to this Agreement or Services provided herein are not to exceed the Business' total cost as set forth in this Agreement."
+    },
+    {
+      "id": "media",
+      "title": "Media Release",
+      "content": "We are asking for permission to take Before and After photos of property to share on our business social media. No personal names, information, or material will be shared. You may opt in or opt out of this during the agreement process."
+    },
+    {
+      "id": "services",
+      "title": "Services & Pricing",
+      "content": "All clients will be provided with a cleaning checklist. All checklists differ by service (Standard Cleaning, Deep Cleaning, Move In/Out, Short Term Rental, or Post-Construction). If the Client requests recurring services, the Business requires an initial Deep Clean in order to reset the property's cleanliness level. This allows the Business to clean to our standards. Prices for services are individually quoted by square footage and condition of the property."
+    },
+    {
+      "id": "clutter",
+      "title": "Property Condition & Access",
+      "content": "To make our cleaning services more efficient, we ask that you pick up clothing, toys, and any other items off the floor prior to our visit. If surfaces are over 7% cluttered, they will not be cleaned. In order for the kitchen sink to be cleaned and polished, the sink must need to be washed; we charge a flat rate of $15 for dishes. If able, please keep pets in a separate room than the one being cleaned. We offer an upfront price before we even enter your home, based on what the Client tells the Business about the size of the home and the cleaning service selected. The Business reserves the right to change the quoted pricing, including any applicable discounts, if the actual services required are not as described, or if the cleaning options selected are inappropriate. If the cleaner is unable to enter the property due to a locked door, wrong door/gate code, or gate attendant is not notified of their pending arrival, the client will be charged 100% of the quote due to the inconvenience."
+    },
+    {
+      "id": "modifications",
+      "title": "Modifications",
+      "content": "The Client and the Business must agree to changes to this contract in writing."
+    },
+    {
+      "id": "authority",
+      "title": "Authority to Sign",
+      "content": "Each party has the authority to enter into this contract and to perform all of its obligations under this contract."
+    }
+  ]
+}

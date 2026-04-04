@@ -1,0 +1,79 @@
+{
+  "services": [
+    {
+      "id": "standard",
+      "name": "Standard Cleaning",
+      "icon": "🏠",
+      "description": "Regular maintenance cleaning to keep your home fresh and tidy.",
+      "basePer100SqFt": [8, 12],
+      "includes": "Dusting, vacuuming, mopping, bathroom and kitchen cleaning"
+    },
+    {
+      "id": "deep",
+      "name": "Deep Cleaning",
+      "icon": "✨",
+      "description": "Thorough top-to-bottom cleaning including baseboards, cabinets, ceiling fans, and more.",
+      "basePer100SqFt": [14, 20],
+      "includes": "Everything in Standard plus baseboards, cabinet faces, ceiling fans, window sills, mirrors"
+    },
+    {
+      "id": "move",
+      "name": "Move In / Move Out",
+      "icon": "📦",
+      "description": "Complete deep clean with additional features for property turnover.",
+      "basePer100SqFt": [18, 25],
+      "includes": "Full deep clean plus cabinet interiors, interior windows, window blinds, walls"
+    },
+    {
+      "id": "commercial",
+      "name": "Commercial & Office",
+      "icon": "🏢",
+      "description": "Professional cleaning for businesses, offices, and commercial spaces.",
+      "basePer100SqFt": [6, 10],
+      "includes": "Tailored to your business needs — offices, lobbies, restrooms, break rooms"
+    },
+    {
+      "id": "construction",
+      "name": "Construction & Real Estate",
+      "icon": "🔨",
+      "description": "Post-construction cleanup and real estate showing preparation.",
+      "basePer100SqFt": [16, 24],
+      "includes": "Dust removal, debris cleanup, surface detailing, window cleaning"
+    },
+    {
+      "id": "church",
+      "name": "Church & Ministry",
+      "icon": "⛪",
+      "description": "Cleaning services for houses of worship and ministry facilities.",
+      "basePer100SqFt": [6, 10],
+      "includes": "Sanctuary, fellowship halls, restrooms, classrooms, offices"
+    },
+    {
+      "id": "organization",
+      "name": "Professional Organization",
+      "icon": "📋",
+      "description": "Decluttering and organizational services to bring order and peace to your space.",
+      "basePer100SqFt": [10, 16],
+      "includes": "Custom organizational solutions, closets, pantries, garages, storage areas"
+    }
+  ],
+  "addons": [
+    { "id": "dishes", "name": "Dish Washing", "description": "Hand wash all dishes", "price": 15 },
+    { "id": "oven", "name": "Oven Cleaning", "description": "Deep clean interior and grates", "price": 50 },
+    { "id": "fridge", "name": "Fridge Cleaning", "description": "Interior deep clean", "price": 50 }
+  ],
+  "frequencies": [
+    { "id": "weekly", "name": "Weekly", "discount": 0.15, "label": "15% off" },
+    { "id": "biweekly", "name": "Biweekly", "discount": 0.10, "label": "10% off" },
+    { "id": "monthly", "name": "Monthly", "discount": 0.05, "label": "5% off" },
+    { "id": "onetime", "name": "One-Time", "discount": 0, "label": "" }
+  ],
+  "sqftRanges": [
+    { "label": "Under 1,000 sq ft", "value": 800 },
+    { "label": "1,000 – 1,500 sq ft", "value": 1250 },
+    { "label": "1,500 – 2,000 sq ft", "value": 1750 },
+    { "label": "2,000 – 2,500 sq ft", "value": 2250 },
+    { "label": "2,500 – 3,000 sq ft", "value": 2750 },
+    { "label": "3,000+ sq ft", "value": 3500 }
+  ]
+}

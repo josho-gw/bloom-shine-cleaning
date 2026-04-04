@@ -1,0 +1,108 @@
+{
+  "standard": {
+    "title": "Standard Cleaning",
+    "rooms": {
+      "Bathrooms": [
+        "Dust light fixtures",
+        "Clean mirrors",
+        "Clean sinks",
+        "Clean toilets",
+        "Clean tubs/showers",
+        "Clean doors",
+        "Vacuum/mop floors"
+      ],
+      "Bedrooms": [
+        "Wet wipe furniture",
+        "Dust all wall decor",
+        "Dust light fixtures",
+        "Dust windowsills",
+        "Dust doors",
+        "Vacuum/mop floors"
+      ],
+      "Kitchen": [
+        "Dust light fixtures",
+        "Clean counters",
+        "Clean stove",
+        "Clean microwave",
+        "Clean/polish appliances",
+        "Clean sink",
+        "Dust doors",
+        "Vacuum/mop floors",
+        "Clean dining table"
+      ],
+      "Living Area": [
+        "Dust light fixtures",
+        "Dust all furniture",
+        "Dust wall decor",
+        "Dust window sills",
+        "Dust doors",
+        "Vacuum/mop floors"
+      ]
+    }
+  },
+  "deep": {
+    "title": "Deep Cleaning",
+    "rooms": {
+      "Bathrooms": [
+        "Wet wipe/detail light fixtures",
+        "Clean mirrors",
+        "Clean sinks",
+        "Clean toilets",
+        "Clean tubs/showers",
+        "Wet wipe face of cabinets",
+        "Wet wipe all doors",
+        "Vacuum/mop floors",
+        "Clean baseboards"
+      ],
+      "Bedrooms": [
+        "Wet wipe bedroom furniture",
+        "Dust all wall decor",
+        "Clean light switches",
+        "Wet wipe window sills",
+        "Clean mirrors",
+        "Wet wipe doors",
+        "Dust ceiling fans",
+        "Vacuum/mop floors",
+        "Clean baseboards"
+      ],
+      "Kitchen": [
+        "Dust light fixtures",
+        "Clean counters",
+        "Clean outside stove",
+        "Clean microwave",
+        "Clean/polish all appliances",
+        "Clean sink",
+        "Wet wipe face of cabinets",
+        "Wet wipe doors",
+        "Vacuum/mop floors",
+        "Clean baseboards"
+      ],
+      "Living Room": [
+        "Dust light fixtures",
+        "Clean all mirrors",
+        "Dust wall decor",
+        "Dust all furniture",
+        "Wet wipe window sills",
+        "Wet wipe doors",
+        "Dust ceiling fans",
+        "Wet wipe doors",
+        "Vacuum/mop floors",
+        "Clean baseboards"
+      ]
+    }
+  },
+  "move": {
+    "title": "Move In / Move Out",
+    "note": "This service includes the entire deep clean checklist with the following additional features. If you have any questions or special requests, please do not hesitate to reach out.",
+    "rooms": {
+      "Additional Items": [
+        "Wet wipe baseboards",
+        "Vacuum/wet wipe cabinets interior",
+        "Clean interior of empty fridge/inside stove",
+        "Clean walls",
+        "Clean interior windows",
+        "Wet wipe window blinds"
+      ]
+    }
+  }
+}
