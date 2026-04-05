@@ -349,63 +349,143 @@ async function refreshData() {
 }
 
 // ============================================
-// TABLE RENDERING WITH INLINE EDITING
+// TABLE RENDERING — Search + Sort + Edit
 // ============================================
 
+// Per-table state: raw data, columns, current sort/search
+const tableState = {};
+const sheetMap = { contacts: 'Contacts', estimates: 'Estimates', contracts: 'Contracts', invoices: 'Invoices' };
+
 function renderTable(tabId, rows, columns) {
-  const tbody = document.getElementById(`${tabId}-table-body`);
-  if (!tbody) return;
+  // Store state for re-renders on sort/search
+  tableState[tabId] = {
+    rows: rows,
+    columns: columns,
+    sortCol: null,
+    sortDir: null, // 'asc' or 'desc'
+    search: ''
+  };
 
   // Update stat counters
   const stat = document.getElementById(`stat-${tabId}`);
   if (stat) stat.textContent = rows.length;
 
+  // Inject search input if not already present
+  let searchEl = document.getElementById(`${tabId}-search`);
+  if (!searchEl) {
+    const container = document.getElementById(`${tabId}-table-body`);
+    if (container) {
+      const tableWrapper = container.closest('.overflow-x-auto') || container.closest('.overflow-auto');
+      if (tableWrapper && tableWrapper.parentElement) {
+        const searchDiv = document.createElement('div');
+        searchDiv.className = 'px-4 py-3 border-b border-gray-100';
+        searchDiv.innerHTML = `
+          <div class="relative max-w-xs">
+            <svg class="absolute w-4 h-4" style="left:0.75rem;top:50%;transform:translateY(-50%);color:var(--color-gray-400);pointer-events:none;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" id="${tabId}-search" class="form-input text-sm" style="padding-left:2.25rem;padding-top:0.5rem;padding-bottom:0.5rem;" placeholder="Search..." oninput="handleTableSearch('${tabId}', this.value)">
+          </div>`;
+        tableWrapper.parentElement.insertBefore(searchDiv, tableWrapper);
+      }
+    }
+  }
+
+  // Make headers sortable
+  const thead = document.querySelector(`#${tabId}-table-body`)?.closest('table')?.querySelector('thead tr');
+  if (thead) {
+    const ths = thead.querySelectorAll('th');
+    let colIdx = 0;
+    ths.forEach(th => {
+      const text = th.textContent.trim();
+      if (text && colIdx < columns.length) {
+        const col = columns[colIdx];
+        th.setAttribute('data-sort', col);
+        th.setAttribute('data-tab', tabId);
+        th.onclick = function() { handleTableSort(tabId, col); };
+        colIdx++;
+      }
+    });
+  }
+
+  renderTableRows(tabId);
+}
+
+function renderTableRows(tabId) {
+  const state = tableState[tabId];
+  if (!state) return;
+
+  const tbody = document.getElementById(`${tabId}-table-body`);
+  if (!tbody) return;
+
+  let rows = [...state.rows];
+
+  // Apply search filter
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    rows = rows.filter(row => {
+      return state.columns.some(col => {
+        const val = String(row[col] || '').toLowerCase();
+        return val.includes(q);
+      });
+    });
+  }
+
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${columns.length + 1}" class="px-4 py-8 text-center text-gray-400 italic">No data yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${state.columns.length + 1}" class="px-4 py-8 text-center text-gray-400 italic">${state.search ? 'No matching results.' : 'No data yet.'}</td></tr>`;
     return;
   }
 
-  // Sort by date — invoices oldest-first; all others newest-first
-  const dateCol = rows[0].Timestamp !== undefined ? 'Timestamp' : (rows[0].Date !== undefined ? 'Date' : null);
-  if (dateCol) {
-    if (tabId === 'invoices') {
-      rows.sort((a, b) => new Date(a[dateCol] || 0) - new Date(b[dateCol] || 0));
-    } else {
-      rows.sort((a, b) => new Date(b[dateCol] || 0) - new Date(a[dateCol] || 0));
+  // Apply sort
+  if (state.sortCol) {
+    const col = state.sortCol;
+    const dir = state.sortDir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      let va = a[col], vb = b[col];
+      // Numeric sort for amounts
+      if (col === 'Amount' || col === 'Low Estimate' || col === 'High Estimate') {
+        return (Number(va) - Number(vb)) * dir;
+      }
+      // Date sort
+      if (col === 'Timestamp' || col === 'Date' || col === 'Signed Date') {
+        return (new Date(va || 0) - new Date(vb || 0)) * dir;
+      }
+      // String sort
+      va = String(va || '').toLowerCase();
+      vb = String(vb || '').toLowerCase();
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  } else {
+    // Default sort: invoices oldest-first, others newest-first
+    const dateCol = rows[0].Timestamp !== undefined ? 'Timestamp' : (rows[0].Date !== undefined ? 'Date' : null);
+    if (dateCol) {
+      const dir = tabId === 'invoices' ? 1 : -1;
+      rows.sort((a, b) => (new Date(a[dateCol] || 0) - new Date(b[dateCol] || 0)) * dir);
     }
   }
 
   tbody.innerHTML = rows.map(row => {
-    const cells = columns.map(col => {
+    const cells = state.columns.map(col => {
       var val = row[col] !== undefined ? row[col] : '';
-      // Format dates
       if (col === 'Timestamp' || col === 'Signed Date') val = formatDate(val);
-      // Format currency
-      if (col === 'Low Estimate' || col === 'High Estimate' || col === 'Amount') val = val ? '$' + val : '';
-      // Status badge
+      if (col === 'Low Estimate' || col === 'High Estimate') val = val ? '$' + val : '';
       if (col === 'Status') return `<td class="px-4 py-3"><span class="status-badge status-${(val || 'new').toLowerCase()}">${esc(val || 'New')}</span></td>`;
-      // Email link
       if (col === 'Email') return `<td class="px-4 py-3"><a href="mailto:${esc(val)}" class="text-teal hover:underline text-sm">${esc(val)}</a></td>`;
-      // Phone link
       if (col === 'Phone') return `<td class="px-4 py-3"><a href="tel:${esc(val)}" class="text-teal hover:underline">${esc(val)}</a></td>`;
-      // Clickable contact name
       if ((col === 'Name' || col === 'Client Name') && tabId === 'contacts') {
         return `<td class="px-4 py-3 font-medium"><button onclick="openContactDetail(${row._row})" class="text-teal hover:underline font-medium text-left">${esc(val)}</button></td>`;
       }
-      // Amount formatting
       if (col === 'Amount') return `<td class="px-4 py-3 font-semibold text-sm">$${esc(String(val || 0))}</td>`;
       return `<td class="px-4 py-3 text-sm">${esc(val)}</td>`;
     }).join('');
 
-    const sheetMap = { contacts: 'Contacts', estimates: 'Estimates', contracts: 'Contracts', invoices: 'Invoices' };
     const editBtn = `<td class="px-4 py-3">
       <button onclick="openEditModal('${sheetMap[tabId]}', ${row._row})" class="text-xs text-teal hover:underline">Edit</button>
     </td>`;
 
-    // Invoice row highlighting based on payment status
     let rowClass = 'border-t border-gray-100 hover:bg-cream/50 transition-colors';
     if (tabId === 'invoices') {
-      const status = row.Status || row['Status'] || '';
+      const status = row.Status || '';
       if (status === 'Paid') rowClass += ' bg-green-50';
       else if (status === 'Overdue') rowClass += ' bg-red-50';
       else if (status === 'Sent') rowClass += ' bg-yellow-50';
@@ -413,6 +493,40 @@ function renderTable(tabId, rows, columns) {
 
     return `<tr class="${rowClass}">${cells}${editBtn}</tr>`;
   }).join('');
+}
+
+function handleTableSort(tabId, col) {
+  const state = tableState[tabId];
+  if (!state) return;
+
+  // Toggle sort direction
+  if (state.sortCol === col) {
+    state.sortDir = state.sortDir === 'asc' ? 'desc' : (state.sortDir === 'desc' ? null : 'asc');
+    if (!state.sortDir) state.sortCol = null;
+  } else {
+    state.sortCol = col;
+    state.sortDir = 'asc';
+  }
+
+  // Update header indicators
+  const table = document.getElementById(`${tabId}-table-body`)?.closest('table');
+  if (table) {
+    table.querySelectorAll('th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === state.sortCol) {
+        if (state.sortDir) th.classList.add('sort-' + state.sortDir);
+      }
+    });
+  }
+
+  renderTableRows(tabId);
+}
+
+function handleTableSearch(tabId, query) {
+  const state = tableState[tabId];
+  if (!state) return;
+  state.search = query;
+  renderTableRows(tabId);
 }
 
 async function renderOverview(data) {

@@ -595,11 +595,11 @@
           </div>
         </div>
 
-        <!-- Record Transaction + Ledger side by side -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Record Transaction + Ledger side by side, matched height -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8" style="align-items: stretch;">
 
           <!-- Record Transaction -->
-          <div class="bg-white rounded-xl shadow-sm p-6 self-start">
+          <div class="bg-white rounded-xl shadow-sm p-6 flex flex-col">
             <h3 class="font-heading text-teal font-semibold mb-4">Record Transaction</h3>
             <form onsubmit="submitLedgerEntry(event)">
               <div class="space-y-3">
@@ -655,8 +655,8 @@
           </div>
 
           <!-- Ledger Table -->
-          <div class="lg:col-span-2">
-            <div class="flex items-center justify-between mb-4">
+          <div class="lg:col-span-2 flex flex-col">
+            <div class="flex items-center justify-between mb-4 flex-shrink-0">
               <h3 class="font-heading text-teal font-semibold">Ledger</h3>
               <div class="flex gap-2">
                 <button onclick="filterLedger('all')" class="ledger-filter active text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="all">All</button>
@@ -664,10 +664,10 @@
                 <button onclick="filterLedger('Expense')" class="ledger-filter text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="Expense">Expense</button>
               </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div class="overflow-x-auto">
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
+              <div class="overflow-auto flex-1">
                 <table class="w-full text-sm">
-                  <thead class="bg-cream">
+                  <thead class="bg-cream sticky top-0 z-10">
                     <tr>
                       <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Date</th>
                       <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Type</th>
@@ -759,6 +759,33 @@
     .status-contacted { background: var(--color-sage-light); color: var(--color-teal); }
     .status-booked { background: var(--color-teal); color: white; }
     .status-completed { background: var(--color-gray-200); color: var(--color-gray-600); }
+    /* Sortable headers */
+    th[data-sort] {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 1.25rem !important;
+    }
+    th[data-sort]:hover {
+      background: var(--color-sage-light);
+    }
+    th[data-sort]::after {
+      content: '⇅';
+      position: absolute;
+      right: 0.25rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.6rem;
+      opacity: 0.4;
+    }
+    th[data-sort].sort-asc::after {
+      content: '▲';
+      opacity: 0.8;
+    }
+    th[data-sort].sort-desc::after {
+      content: '▼';
+      opacity: 0.8;
+    }
     /* Filter button styles */
     .inv-filter.active, .ledger-filter.active {
       background: var(--color-teal);
