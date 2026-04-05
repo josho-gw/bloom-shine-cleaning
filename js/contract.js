@@ -215,7 +215,7 @@ async function submitContract() {
   sessionStorage.removeItem('bloomshine_contract');
 
   // Show success
-  showContractStep('success');
+  showContractStep(4);
 }
 
 // ============================================

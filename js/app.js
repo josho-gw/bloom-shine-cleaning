@@ -284,6 +284,46 @@ function initOverlayClose() {
 }
 
 // ============================================
+// PAYMENT MODAL
+// ============================================
+
+function openPayment() {
+  const modal = document.getElementById('payment-modal');
+  if (modal) {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closePayment() {
+  const modal = document.getElementById('payment-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+// ============================================
+// TERMS & PRIVACY MODAL
+// ============================================
+
+function openTerms() {
+  const modal = document.getElementById('terms-modal');
+  if (modal) {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeTerms() {
+  const modal = document.getElementById('terms-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+// ============================================
 // SCROLL REVEAL
 // ============================================
 

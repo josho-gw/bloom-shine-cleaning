@@ -136,9 +136,52 @@
 
 
   <!-- ============================================
+       ABOUT SECTION
+       ============================================ -->
+  <section id="about" class="py-20 px-4 reveal" style="background: var(--color-white);">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">About Us</h2>
+        <div class="section-divider"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div class="bg-cream rounded-2xl p-8 flex flex-col items-center justify-center min-h-[300px]">
+          <img src="assets/logo-full.png" alt="Bloom & Shine Cleaning Services" class="w-64 mx-auto mb-4">
+          <p class="font-heading text-teal font-semibold">Nicki Burnett, Owner</p>
+        </div>
+
+        <div>
+          <h3 class="font-script text-rose text-3xl mb-4">Our Story</h3>
+          <p class="text-gray-600 mb-4 leading-relaxed">
+            Bloom &amp; Shine is a Christ-centered cleaning and organization company that strives to provide
+            reliable services, allowing clients to have more ease and enjoyment in life.
+          </p>
+          <p class="text-gray-600 mb-4 leading-relaxed">
+            We are committed to using non-toxic products to ensure the safety and well-being of those we serve.
+            We offer a variety of services to fit each of our clients' specific needs.
+          </p>
+          <p class="text-gray-600 mb-6 leading-relaxed">
+            From standard cleanings to deep cleans, move in/out services to professional organization — we bring
+            beauty, order, and peace to every space we touch.
+          </p>
+
+          <div class="bg-cream rounded-xl p-6">
+            <p class="scripture text-base leading-relaxed">
+              "Whatever you do, work at it with all your heart, as working for the Lord, not for human masters."
+            </p>
+            <p class="scripture-reference text-sm mt-2">— Colossians 3:23</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================
        SERVICES SECTION
        ============================================ -->
-  <section id="services" class="py-20 px-4" style="background: var(--color-white);">
+  <section id="services" class="py-20 px-4" style="background: var(--color-cream);">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-16">
         <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">Our Services</h2>
@@ -266,96 +309,81 @@
   </div>
 
 
-  <!-- ============================================
-       BOOKING SECTION
-       ============================================ -->
-  <section id="book" class="py-20 px-4" style="background: var(--color-white);">
-    <div class="max-w-4xl mx-auto">
-      <div class="text-center mb-12">
-        <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">Book Your Appointment</h2>
-        <div class="section-divider"></div>
-        <p class="text-gray-600 max-w-xl mx-auto">
-          Schedule a walk-through or your cleaning appointment online. We'll confirm your booking promptly.
-        </p>
+  <!-- Payment Modal (standalone — for returning clients via nav/footer) -->
+  <div id="payment-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Make a Payment">
+    <div class="modal-content max-w-2xl">
+      <button onclick="closePayment()" class="modal-close" aria-label="Close">&times;</button>
+      <div class="text-center mb-6">
+        <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-12 mx-auto mb-2">
+        <h3 class="font-heading text-teal text-2xl font-bold">Make a Payment</h3>
+        <p class="text-gray-400 text-sm mt-1">Payment is required before or at time of service.</p>
       </div>
 
-      <!-- Cal.com Embed Placeholder -->
-      <div id="cal-embed" class="bg-cream rounded-2xl p-8 sm:p-12 text-center min-h-[300px] flex flex-col items-center justify-center">
-        <svg class="w-16 h-16 mb-4" style="color: var(--color-sage);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        <h3 class="font-heading text-teal text-xl font-semibold mb-2">Online Booking Coming Soon</h3>
-        <p class="text-gray-500 mb-6">Our scheduling system is being set up. In the meantime, please contact us directly.</p>
-        <div class="flex flex-col sm:flex-row gap-4 items-center justify-center">
-          <a href="tel:7063635315" class="btn-primary">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-            Call 706-363-5315
-          </a>
-          <a href="mailto:bloom.shinecleaningservices@yahoo.com" class="btn-secondary">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-            Email Us
-          </a>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="bg-cream rounded-xl p-5 text-center">
+          <h4 class="font-heading text-teal font-bold mb-3">Venmo</h4>
+          <img src="assets/venmo-qr.png" alt="Venmo QR" class="qr-code mx-auto mb-3">
+          <p class="text-gray-500 text-xs mb-2">@bloomshinecleaningLLC</p>
+          <a href="https://venmo.com/bloomshinecleaningLLC" target="_blank" rel="noopener" class="btn-primary text-xs px-3 py-1.5">Pay with Venmo</a>
         </div>
-      </div>
-      <p class="text-center text-gray-400 text-sm mt-4 italic">Prefer to call? We'd love to hear from you at <a href="tel:7063635315" class="text-teal hover:underline">706-363-5315</a></p>
-    </div>
-  </section>
-
-
-  <!-- ============================================
-       PAYMENT SECTION
-       ============================================ -->
-  <section id="pay" class="py-20 px-4 bg-cream">
-    <div class="max-w-5xl mx-auto">
-      <div class="text-center mb-12">
-        <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">Make a Payment</h2>
-        <div class="section-divider"></div>
-        <p class="text-gray-600 max-w-xl mx-auto">Payment is required before or at time of service. Choose your preferred method below.</p>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
-        <!-- Venmo -->
-        <div class="bg-white rounded-2xl p-6 text-center shadow-sm">
-          <h3 class="font-heading text-teal font-bold text-lg mb-4">Venmo</h3>
-          <img src="assets/venmo-qr.png" alt="Venmo QR Code - @bloomshinecleaningLLC" class="qr-code mx-auto mb-4">
-          <p class="text-gray-500 text-sm mb-3">@bloomshinecleaningLLC</p>
-          <a href="https://venmo.com/bloomshinecleaningLLC" target="_blank" rel="noopener" class="btn-primary text-xs px-4 py-2">Pay with Venmo</a>
+        <div class="bg-cream rounded-xl p-5 text-center">
+          <h4 class="font-heading text-teal font-bold mb-3">Cash App</h4>
+          <img src="assets/cashapp-qr.png" alt="Cash App QR" class="qr-code mx-auto mb-3">
+          <p class="text-gray-500 text-xs mb-2">$bloomshinecleanLLC</p>
+          <a href="https://cash.app/$bloomshinecleanLLC" target="_blank" rel="noopener" class="btn-primary text-xs px-3 py-1.5">Pay with Cash App</a>
         </div>
-
-        <!-- Cash App -->
-        <div class="bg-white rounded-2xl p-6 text-center shadow-sm">
-          <h3 class="font-heading text-teal font-bold text-lg mb-4">Cash App</h3>
-          <img src="assets/cashapp-qr.png" alt="Cash App QR Code - $bloomshinecleanLLC" class="qr-code mx-auto mb-4">
-          <p class="text-gray-500 text-sm mb-3">$bloomshinecleanLLC</p>
-          <a href="https://cash.app/$bloomshinecleanLLC" target="_blank" rel="noopener" class="btn-primary text-xs px-4 py-2">Pay with Cash App</a>
-        </div>
-
-        <!-- Cash -->
-        <div class="bg-white rounded-2xl p-6 text-center shadow-sm flex flex-col items-center justify-center">
-          <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4" style="background: var(--color-sage-light);">
-            <svg class="w-8 h-8 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <div class="bg-cream rounded-xl p-5 text-center flex flex-col items-center justify-center">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center mb-3" style="background: var(--color-sage-light);">
+            <svg class="w-6 h-6 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
           </div>
-          <h3 class="font-heading text-teal font-bold text-lg mb-2">Cash</h3>
-          <p class="text-gray-500 text-sm">Accepted at time of service</p>
+          <h4 class="font-heading text-teal font-bold mb-1">Cash</h4>
+          <p class="text-gray-400 text-xs">At time of service</p>
         </div>
       </div>
-
-      <p class="text-center text-gray-400 text-xs mt-8 italic">We do not accept credit cards at this time.</p>
+      <p class="text-center text-gray-400 text-xs mt-4 italic">We do not accept credit cards at this time.</p>
     </div>
-  </section>
+  </div>
 
 
   <!-- ============================================
-       POLICIES SECTION
+       FAQ SECTION
        ============================================ -->
-  <section id="policies" class="py-20 px-4" style="background: var(--color-white);">
+  <section id="faq" class="py-20 px-4 reveal" style="background: var(--color-white);">
     <div class="max-w-3xl mx-auto">
       <div class="text-center mb-12">
-        <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">Policies &amp; Terms</h2>
+        <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">Frequently Asked Questions</h2>
         <div class="section-divider"></div>
-        <p class="text-gray-600">Transparency and trust are important to us. Please review our policies below.</p>
       </div>
 
-      <div id="policies-container">
-        <!-- Rendered by app.js from policies.json -->
+      <div class="space-y-0">
+        <details class="policy-item">
+          <summary>What cleaning services do you offer?</summary>
+          <div><p>We offer Standard Cleaning, Deep Cleaning, Move In/Out, Commercial &amp; Office, Construction &amp; Real Estate, Church &amp; Ministry, and Professional Organization services. Each service includes a detailed checklist tailored to your needs.</p></div>
+        </details>
+        <details class="policy-item">
+          <summary>How is pricing determined?</summary>
+          <div><p>Prices are individually quoted based on the square footage and condition of your property. Use our free estimator for a ballpark range, then we'll provide an exact quote after a walk-through.</p></div>
+        </details>
+        <details class="policy-item">
+          <summary>What payment methods do you accept?</summary>
+          <div><p>We accept Venmo, Cash App, and cash. Payment is required before or at time of service. We do not accept credit cards at this time.</p></div>
+        </details>
+        <details class="policy-item">
+          <summary>What is your cancellation policy?</summary>
+          <div><p>We require 72 hours' notice for cancellations. Cancellations within 24 hours incur a $25 fee. Same-day cancellations are charged 50% of the quoted price after the one-time grace period.</p></div>
+        </details>
+        <details class="policy-item">
+          <summary>Do you use non-toxic products?</summary>
+          <div><p>Yes! We are committed to using non-toxic cleaning products to ensure the safety and well-being of everyone in your home or business, including children and pets.</p></div>
+        </details>
+        <details class="policy-item">
+          <summary>What areas do you serve?</summary>
+          <div><p>We currently serve the Hall and Jackson County areas in Georgia. Contact us to confirm service availability in your area.</p></div>
+        </details>
+        <details class="policy-item">
+          <summary>Do I need to be home during cleaning?</summary>
+          <div><p>No, but we do need access to the property. If the cleaner is unable to enter due to a locked door, wrong code, or unnotified gate attendant, the full quote will be charged.</p></div>
+        </details>
       </div>
     </div>
   </section>
@@ -364,20 +392,20 @@
   <!-- ============================================
        DIGITAL AGREEMENT SECTION
        ============================================ -->
-  <section id="agreement" class="py-20 px-4" style="background: linear-gradient(180deg, var(--color-blush-light) 0%, var(--color-cream) 100%);">
+  <section id="agreement" class="py-20 px-4 reveal" style="background: linear-gradient(180deg, var(--color-blush-light) 0%, var(--color-cream) 100%);">
     <div class="max-w-3xl mx-auto text-center">
-      <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">Service Agreement</h2>
+      <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">Book Your Cleaning</h2>
       <div class="section-divider"></div>
       <p class="text-gray-600 mb-4 max-w-xl mx-auto">
-        Ready to get started? Complete your service agreement online — no paper needed.
+        Ready to get started? Sign your service agreement, select payment, and schedule — all in one simple process.
       </p>
       <p class="scripture text-sm mb-8">
         "Whatever you do, in word or deed, do everything in the name of the Lord Jesus."
         <span class="scripture-reference">— Colossians 3:17</span>
       </p>
       <button onclick="openContract()" class="btn-primary text-lg px-8 py-4">
-        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        Sign Service Agreement
+        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Book Now
       </button>
     </div>
   </section>
@@ -509,65 +537,80 @@
         </div>
       </div>
 
-      <!-- Contract Success -->
-      <div id="contract-step-success" class="contract-step" style="display: none;">
-        <div class="text-center py-8">
+      <!-- Step 4: Payment -->
+      <div id="contract-step-4" class="contract-step" style="display: none;">
+        <div class="text-center mb-4">
+          <div class="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center" style="background: var(--color-sage-light);">
+            <svg class="w-7 h-7 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <h4 class="font-heading text-teal text-xl font-bold">Agreement Signed!</h4>
+          <p class="text-gray-500 text-sm mt-1">Your PDF has been downloaded. Now select your payment method.</p>
+        </div>
+
+        <h4 class="font-heading text-teal font-semibold mb-4">Payment Method</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <a href="https://venmo.com/bloomshinecleaningLLC" target="_blank" rel="noopener" class="bg-cream rounded-xl p-4 text-center hover:shadow-md transition-shadow block">
+            <img src="assets/venmo-qr.png" alt="Venmo QR" class="qr-code mx-auto mb-2" style="max-width:120px;">
+            <p class="font-heading text-teal font-bold text-sm">Venmo</p>
+            <p class="text-gray-400 text-xs">@bloomshinecleaningLLC</p>
+          </a>
+          <a href="https://cash.app/$bloomshinecleanLLC" target="_blank" rel="noopener" class="bg-cream rounded-xl p-4 text-center hover:shadow-md transition-shadow block">
+            <img src="assets/cashapp-qr.png" alt="Cash App QR" class="qr-code mx-auto mb-2" style="max-width:120px;">
+            <p class="font-heading text-teal font-bold text-sm">Cash App</p>
+            <p class="text-gray-400 text-xs">$bloomshinecleanLLC</p>
+          </a>
+          <div class="bg-cream rounded-xl p-4 text-center flex flex-col items-center justify-center">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2" style="background: var(--color-sage-light);">
+              <svg class="w-5 h-5 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            </div>
+            <p class="font-heading text-teal font-bold text-sm">Cash</p>
+            <p class="text-gray-400 text-xs">At time of service</p>
+          </div>
+        </div>
+        <p class="text-gray-400 text-xs text-center italic mb-6">Payment is required before or at time of service. We do not accept credit cards.</p>
+
+        <div class="flex justify-end">
+          <button onclick="contractNextStep(5)" class="btn-primary">Schedule Appointment &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Schedule -->
+      <div id="contract-step-5" class="contract-step" style="display: none;">
+        <h4 class="font-heading text-teal font-semibold mb-4">Schedule Your Appointment</h4>
+        <div class="bg-cream rounded-xl p-6 text-center min-h-[200px] flex flex-col items-center justify-center mb-6">
+          <svg class="w-12 h-12 mb-3" style="color: var(--color-sage);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <h4 class="font-heading text-teal text-lg font-semibold mb-2">Online Scheduling Coming Soon</h4>
+          <p class="text-gray-500 text-sm mb-4">We'll reach out to schedule your first appointment. Or contact us directly:</p>
+          <div class="flex flex-col sm:flex-row gap-3 items-center justify-center">
+            <a href="tel:7063635315" class="btn-primary text-sm">
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              706-363-5315
+            </a>
+            <a href="mailto:bloom.shinecleaningservices@yahoo.com" class="btn-secondary text-sm">Email Us</a>
+          </div>
+        </div>
+
+        <div class="flex justify-between">
+          <button onclick="contractNextStep(4)" class="btn-secondary">&larr; Back to Payment</button>
+          <button onclick="contractNextStep('complete')" class="btn-rose">Complete Booking</button>
+        </div>
+      </div>
+
+      <!-- Complete -->
+      <div id="contract-step-complete" class="contract-step" style="display: none;">
+        <div class="text-center py-6">
           <div class="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: var(--color-sage-light);">
             <svg class="w-10 h-10 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
           </div>
-          <h4 class="font-heading text-teal text-2xl font-bold mb-2">Agreement Submitted!</h4>
-          <p class="text-gray-600 mb-2">Your signed agreement has been submitted and downloaded as a PDF.</p>
-          <p class="text-gray-500 text-sm mb-6">Shannon will review your agreement and contact you to schedule your service.</p>
-          <p class="scripture text-sm">"Thank you for trusting Bloom &amp; Shine with your cleaning needs!"</p>
-          <button onclick="closeContract()" class="btn-primary mt-6">Close</button>
+          <h4 class="font-heading text-teal text-2xl font-bold mb-2">You're All Set!</h4>
+          <p class="text-gray-600 mb-1">Agreement signed. Payment method selected. We'll be in touch to confirm your appointment.</p>
+          <p class="text-gray-500 text-sm mb-6">A copy of your agreement has been downloaded as a PDF.</p>
+          <p class="scripture text-sm mb-6">"Thank you for trusting Bloom &amp; Shine with your cleaning needs!"</p>
+          <button onclick="closeContract()" class="btn-primary">Close</button>
         </div>
       </div>
     </div>
   </div>
-
-
-  <!-- ============================================
-       ABOUT SECTION
-       ============================================ -->
-  <section id="about" class="py-20 px-4" style="background: var(--color-white);">
-    <div class="max-w-4xl mx-auto">
-      <div class="text-center mb-12">
-        <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">About Us</h2>
-        <div class="section-divider"></div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-        <!-- Photo placeholder -->
-        <div class="bg-cream rounded-2xl p-8 flex flex-col items-center justify-center min-h-[300px]">
-          <img src="assets/logo-full.png" alt="Bloom & Shine Cleaning Services" class="w-64 mx-auto mb-4">
-          <p class="font-heading text-teal font-semibold">Nicki Burnett, Owner</p>
-        </div>
-
-        <div>
-          <h3 class="font-script text-rose text-3xl mb-4">Our Story</h3>
-          <p class="text-gray-600 mb-4 leading-relaxed">
-            Bloom &amp; Shine is a Christ-centered cleaning and organization company that strives to provide
-            reliable services, allowing clients to have more ease and enjoyment in life.
-          </p>
-          <p class="text-gray-600 mb-4 leading-relaxed">
-            We are committed to using non-toxic products to ensure the safety and well-being of those we serve.
-            We offer a variety of services to fit each of our clients' specific needs.
-          </p>
-          <p class="text-gray-600 mb-6 leading-relaxed">
-            From standard cleanings to deep cleans, move in/out services to professional organization — we bring
-            beauty, order, and peace to every space we touch.
-          </p>
-
-          <div class="bg-cream rounded-xl p-6">
-            <p class="scripture text-base leading-relaxed">
-              "Whatever you do, work at it with all your heart, as working for the Lord, not for human masters."
-            </p>
-            <p class="scripture-reference text-sm mt-2">— Colossians 3:23</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 
 
   <!-- ============================================
@@ -743,17 +786,131 @@
       </div>
 
       <!-- Bottom bar -->
-      <div class="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <p class="text-xs opacity-50">&copy; 2025 Bloom &amp; Shine Cleaning Services LLC. All rights reserved.</p>
-        <p class="scripture text-xs opacity-50">
+      <div class="border-t border-white/10 pt-6">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-3">
+          <p class="text-xs opacity-50">&copy; 2025 Bloom &amp; Shine Cleaning Services LLC. All rights reserved.</p>
+          <div class="flex items-center gap-4">
+            <button onclick="openTerms()" class="text-xs opacity-50 hover:opacity-80 transition-opacity">Terms &amp; Privacy</button>
+            <button onclick="openPayment()" class="text-xs opacity-50 hover:opacity-80 transition-opacity">Make a Payment</button>
+            <a href="admin.html" class="text-xs opacity-20 hover:opacity-50 transition-opacity" title="Admin Portal">Admin</a>
+          </div>
+        </div>
+        <p class="scripture text-xs opacity-40 text-center">
           "Whatever you do, in word or deed, do everything in the name of the Lord Jesus." — Colossians 3:17
         </p>
-        <!-- Admin portal -->
-        <a href="admin.html" class="text-xs opacity-20 hover:opacity-50 transition-opacity" title="Admin Portal">Admin</a>
       </div>
     </div>
   </footer>
 
+
+  <!-- ============================================
+       TERMS OF USE & PRIVACY POLICY MODAL
+       ============================================ -->
+  <div id="terms-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Terms and Privacy Policy">
+    <div class="modal-content max-w-3xl" style="max-height: 90vh;">
+      <button onclick="closeTerms()" class="modal-close" aria-label="Close">&times;</button>
+
+      <div class="text-center mb-6">
+        <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-10 mx-auto mb-2">
+        <h3 class="font-heading text-teal text-2xl font-bold">Terms of Use &amp; Privacy Policy</h3>
+        <p class="text-gray-400 text-xs mt-1">Bloom &amp; Shine Cleaning Services LLC &bull; Last updated: April 2026</p>
+      </div>
+
+      <!-- Tab toggle -->
+      <div class="flex border-b border-gray-200 mb-6">
+        <button onclick="showTermsTab('terms')" id="terms-tab-btn" class="flex-1 py-2 text-sm font-heading font-semibold text-teal border-b-2 border-teal">Terms of Use</button>
+        <button onclick="showTermsTab('privacy')" id="privacy-tab-btn" class="flex-1 py-2 text-sm font-heading font-semibold text-gray-400 border-b-2 border-transparent">Privacy Policy</button>
+      </div>
+
+      <!-- Terms of Use Content -->
+      <div id="terms-content" class="overflow-y-auto text-sm text-gray-600 leading-relaxed space-y-4" style="max-height: 60vh;">
+        <h4 class="font-heading text-teal font-semibold text-base">1. Acceptance of Terms</h4>
+        <p>By accessing or using the Bloom &amp; Shine Cleaning Services website and services, you agree to be bound by these Terms of Use. If you do not agree, please do not use our services.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">2. Services</h4>
+        <p>Bloom &amp; Shine Cleaning Services LLC ("the Company") provides residential and commercial cleaning, organization, and related services in the State of Georgia. All services are subject to availability and a signed service agreement.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">3. Service Agreements</h4>
+        <p>A service agreement must be completed and signed before any cleaning service is performed. The agreement constitutes a binding contract between the Client and the Company under Georgia law. Electronic signatures are valid under the Georgia Uniform Electronic Transactions Act (O.C.G.A. &sect; 10-12-1 et seq.) and the federal ESIGN Act.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">4. Pricing &amp; Payment</h4>
+        <p>All prices are quoted individually based on square footage and property condition. The Company reserves the right to adjust pricing if actual conditions differ from those described. Payment is required before or at the time of service via Venmo, Cash App, or cash. The Company does not accept credit cards. Late payments may be subject to additional fees.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">5. Cancellation &amp; Rescheduling</h4>
+        <p>Cancellations require 72 hours' notice. Cancellations within 24 hours incur a $25 fee. Same-day cancellations are charged 50% of the quoted price after the one-time grace period. The Company requires 2 weeks' notice for contract termination. The Client is responsible for payment of all services rendered through the termination date.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">6. Property Access &amp; Condition</h4>
+        <p>Clients must provide safe, accessible entry to the property. Surfaces exceeding 7% clutter will not be cleaned. If the cleaner cannot access the property due to locked doors, incorrect codes, or unnotified gate attendants, the full quoted amount will be charged. Pets should be secured in a separate area during cleaning.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">7. Limitation of Liability</h4>
+        <p>The Company's total liability for any claim arising from services rendered shall not exceed the total cost of the service as specified in the service agreement. The Company is not liable for pre-existing damage, normal wear and tear, or items left unsecured. Under Georgia law (O.C.G.A. &sect; 51-12-33), the Company shall not be liable for punitive damages except as provided by statute.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">8. Licensing &amp; Insurance</h4>
+        <p>The Company holds all licenses required to perform cleaning services in the State of Georgia and maintains appropriate liability insurance. All work is performed in compliance with applicable federal, state, and local laws and regulations.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">9. Media Release</h4>
+        <p>With Client consent, the Company may photograph property before and after cleaning for use on business social media. No personal names, identifying information, or private materials will be shared. Consent may be granted or declined during the service agreement process.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">10. Modifications</h4>
+        <p>Changes to any service agreement must be agreed to in writing by both parties. The Company reserves the right to update these Terms of Use at any time. Continued use of services constitutes acceptance of updated terms.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">11. Governing Law</h4>
+        <p>These terms are governed by and construed in accordance with the laws of the State of Georgia. Any disputes arising from these terms or the services provided shall be subject to the jurisdiction of the courts in Hall County, Georgia.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">12. Non-Toxic Products</h4>
+        <p>The Company is committed to using non-toxic, environmentally responsible cleaning products. Clients with specific product sensitivities or requirements should notify the Company prior to the first service.</p>
+      </div>
+
+      <!-- Privacy Policy Content -->
+      <div id="privacy-content" class="hidden overflow-y-auto text-sm text-gray-600 leading-relaxed space-y-4" style="max-height: 60vh;">
+        <h4 class="font-heading text-teal font-semibold text-base">1. Information We Collect</h4>
+        <p><strong>Contact information:</strong> Name, email address, phone number, and physical address provided through our contact form, estimator, or service agreement.</p>
+        <p><strong>Service information:</strong> Details about requested services, property characteristics, scheduling preferences, and service history.</p>
+        <p><strong>Payment information:</strong> Payment method selections (Venmo, Cash App, or cash). We do not store or process credit card numbers.</p>
+        <p><strong>Website usage:</strong> Standard web analytics including pages visited, browser type, and device information. No cookies are used for tracking or advertising.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">2. How We Use Your Information</h4>
+        <p>Your information is used solely for: providing and scheduling cleaning services, communicating about your account and appointments, processing payments, sending service-related notifications, and improving our services. We do not use your information for marketing to third parties.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">3. Information Sharing</h4>
+        <p>We do not sell, rent, or share your personal information with third parties for marketing purposes. Information may be shared only: with service personnel who need it to perform your cleaning, with payment processors (Venmo/Cash App) to facilitate transactions, or when required by law or legal process under Georgia or federal law.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">4. Data Storage &amp; Security</h4>
+        <p>Your information is stored securely using Google Workspace infrastructure with encryption at rest and in transit. Access is restricted to authorized Company personnel. We retain your information for the duration of our business relationship and as required by applicable Georgia record-retention laws.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">5. Your Rights</h4>
+        <p>You have the right to: request access to personal information we hold about you, request correction of inaccurate information, request deletion of your information (subject to legal retention requirements), and withdraw consent for media releases at any time. To exercise these rights, contact us at bloom.shinecleaningservices@yahoo.com or 706-363-5315.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">6. Children's Privacy</h4>
+        <p>Our services and website are not directed to individuals under the age of 18. We do not knowingly collect personal information from minors.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">7. Changes to This Policy</h4>
+        <p>We may update this Privacy Policy periodically. The "Last updated" date at the top of this document reflects the most recent revision. Continued use of our services constitutes acceptance of the updated policy.</p>
+
+        <h4 class="font-heading text-teal font-semibold text-base">8. Contact</h4>
+        <p>For questions about this Privacy Policy or your personal information, contact:<br>
+        Bloom &amp; Shine Cleaning Services LLC<br>
+        Hall &amp; Jackson County, Georgia<br>
+        bloom.shinecleaningservices@yahoo.com<br>
+        706-363-5315</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  function showTermsTab(tab) {
+    document.getElementById('terms-content').classList.toggle('hidden', tab !== 'terms');
+    document.getElementById('privacy-content').classList.toggle('hidden', tab !== 'privacy');
+    document.getElementById('terms-tab-btn').classList.toggle('text-teal', tab === 'terms');
+    document.getElementById('terms-tab-btn').classList.toggle('border-teal', tab === 'terms');
+    document.getElementById('terms-tab-btn').classList.toggle('text-gray-400', tab !== 'terms');
+    document.getElementById('terms-tab-btn').classList.toggle('border-transparent', tab !== 'terms');
+    document.getElementById('privacy-tab-btn').classList.toggle('text-teal', tab === 'privacy');
+    document.getElementById('privacy-tab-btn').classList.toggle('border-teal', tab === 'privacy');
+    document.getElementById('privacy-tab-btn').classList.toggle('text-gray-400', tab !== 'privacy');
+    document.getElementById('privacy-tab-btn').classList.toggle('border-transparent', tab !== 'privacy');
+  }
+  </script>
 
   <!-- ============================================
        SCRIPTS
