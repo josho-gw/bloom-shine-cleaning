@@ -39,7 +39,7 @@
       <div class="flex items-center justify-between h-16 sm:h-20">
         <!-- Logo -->
         <a href="#home" class="flex items-center gap-2">
-          <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-12 sm:h-14 w-auto">
+          <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-14 sm:h-16 md:h-18 w-auto">
         </a>
 
         <!-- Desktop Nav -->
@@ -48,7 +48,7 @@
           <a href="#services" class="nav-link">Services</a>
           <a href="#estimator" class="nav-link">Estimate</a>
           <a href="#agreement" class="nav-link">Book</a>
-          <a href="#pay" class="nav-link">Pay</a>
+          <button onclick="openPayment()" class="nav-link" style="background:none;border:none;cursor:pointer;">Pay</button>
           <a href="#contact" class="nav-link">Contact</a>
         </div>
 
@@ -81,7 +81,7 @@
       <a href="#services" class="nav-link text-lg">Services</a>
       <a href="#estimator" class="nav-link text-lg">Estimate</a>
       <a href="#agreement" class="nav-link text-lg">Book</a>
-      <a href="#pay" class="nav-link text-lg">Pay</a>
+      <button onclick="openPayment()" class="nav-link text-lg" style="background:none;border:none;cursor:pointer;text-align:left;padding:0;">Pay</button>
       <a href="#contact" class="nav-link text-lg">Contact</a>
       <hr class="border-gray-200">
       <a href="tel:7063635315" class="flex items-center gap-2 text-teal font-heading font-semibold">
@@ -126,10 +126,10 @@
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
           Get a Free Estimate
         </button>
-        <a href="#book" class="btn-secondary">
+        <button onclick="openContract()" class="btn-secondary">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          Book a Cleaning
-        </a>
+          Book Now
+        </button>
       </div>
     </div>
   </section>
@@ -300,7 +300,7 @@
           <p class="text-gray-400 text-xs mb-6 italic">Final pricing based on walk-through. Contact us for an exact quote.</p>
 
           <div class="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="#book" onclick="closeEstimator()" class="btn-primary">Book a Walk-Through</a>
+            <button onclick="closeEstimator(); openContract()" class="btn-primary">Book Now</button>
             <a href="#contact" onclick="closeEstimator(); prefillContact()" class="btn-secondary">Request Exact Quote</a>
           </div>
         </div>
@@ -621,7 +621,7 @@
       <div class="text-center mb-12">
         <h2 class="font-heading text-teal text-3xl sm:text-4xl font-bold mb-3">Get in Touch</h2>
         <div class="section-divider"></div>
-        <p class="text-gray-600">Have questions? Need a quote? We'd love to hear from you.</p>
+        <p class="text-gray-600">Service not listed? Ask us! We'd love to hear from you.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -758,10 +758,10 @@
           <h4 class="font-heading font-semibold text-sm uppercase tracking-wider mb-4 opacity-80">Quick Links</h4>
           <div class="space-y-2">
             <a href="#services" class="block text-sm opacity-70 hover:opacity-100 transition-opacity">Services</a>
-            <a href="#estimator" class="block text-sm opacity-70 hover:opacity-100 transition-opacity">Free Estimate</a>
-            <a href="#book" class="block text-sm opacity-70 hover:opacity-100 transition-opacity">Book Appointment</a>
-            <a href="#pay" class="block text-sm opacity-70 hover:opacity-100 transition-opacity">Make a Payment</a>
-            <a href="#policies" class="block text-sm opacity-70 hover:opacity-100 transition-opacity">Policies</a>
+            <button onclick="openEstimator()" class="block text-sm opacity-70 hover:opacity-100 transition-opacity text-left" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;">Free Estimate</button>
+            <a href="#agreement" class="block text-sm opacity-70 hover:opacity-100 transition-opacity">Book Appointment</a>
+            <button onclick="openPayment()" class="block text-sm opacity-70 hover:opacity-100 transition-opacity text-left" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;">Make a Payment</button>
+            <a href="#faq" class="block text-sm opacity-70 hover:opacity-100 transition-opacity">FAQ</a>
             <a href="#contact" class="block text-sm opacity-70 hover:opacity-100 transition-opacity">Contact</a>
           </div>
         </div>
@@ -788,7 +788,7 @@
       <!-- Bottom bar -->
       <div class="border-t border-white/10 pt-6">
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-3">
-          <p class="text-xs opacity-50">&copy; 2025 Bloom &amp; Shine Cleaning Services LLC. All rights reserved.</p>
+          <p class="text-xs opacity-50">&copy; 2026 Bloom &amp; Shine Cleaning Services LLC. All rights reserved.</p>
           <div class="flex items-center gap-4">
             <button onclick="openTerms()" class="text-xs opacity-50 hover:opacity-80 transition-opacity">Terms &amp; Privacy</button>
             <button onclick="openPayment()" class="text-xs opacity-50 hover:opacity-80 transition-opacity">Make a Payment</button>

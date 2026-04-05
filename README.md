@@ -6,17 +6,32 @@ A dynamic single-page website for **Bloom & Shine Cleaning Services LLC**, a Chr
 
 ## Features
 
-- **Interactive Estimator** — 4-step wizard calculates ballpark cleaning cost by service type, square footage, frequency, and add-ons
-- **Digital Service Agreement** — Replaces paper contracts with signature capture, PDF generation, and automatic CRM logging
-- **Admin Dashboard** — Multi-user role-based portal with contacts, estimates, contracts, invoicing, and user management
-- **Invoice Generator** — Branded PDF invoices with dynamic Venmo/Cash App payment links
-- **Contact Form** — Submissions logged to Google Sheets CRM with instant email notifications
-- **Finance & Accounting** — General ledger, expense tracking, chart of accounts, auto-ledger from invoice payments, YTD/MTD summaries
-- **Automated Digests** — Daily (7 AM) and weekly (Monday 8 AM) email summaries with follow-up reminders
-- **Online Booking** — Cal.com embed for self-service scheduling
-- **Payment Integration** — Venmo & Cash App QR codes and deep links
-- **Service Checklists** — Interactive room-by-room checklists for Standard, Deep, and Move In/Out services
-- **Policies & Terms** — Business policies in collapsible accordions and digital contract flow
+**Public Site:**
+- **Unified Booking Flow** — Agreement → Payment → Schedule in a single multi-step modal
+- **Interactive Estimator** — 4-step wizard (service → sq ft → frequency → add-ons → ballpark range). Service cards auto-open with pre-selection.
+- **Digital Service Agreement** — Signature capture, PDF generation, auto-logged to CRM
+- **Contact Auto-Capture** — Client data saved to CRM as soon as booking modal step 1 completes
+- **Payment Modal** — Venmo/Cash App QR codes + deep links (standalone for returning clients)
+- **FAQ** — Concise Q&A replacing full policy accordion
+- **Terms of Use & Privacy Policy** — Georgia-compliant, tabbed modal (UETA/ESIGN, OCGA liability, Hall County jurisdiction)
+- **Service Checklists** — Room-by-room interactive checklists
+- **Scroll Animations** — Reveal-on-scroll, staggered card animations
+
+**Admin Dashboard:**
+- **Overview** — CRM stats, recent activity feed, financial summary (MTD/YTD)
+- **Data Tables** — Contacts, Estimates, Contracts, Invoices with per-table search + sortable columns
+- **Contact Detail Modal** — Unified timeline (contracts + invoices), status indicators, add notes, log lost contracts
+- **Invoice Management** — Oldest-first list, status filters (All/Unpaid/30+ Days/Paid), row highlighting, archive-only (no delete)
+- **Finance & Accounting** — General ledger, expense tracking, YTD/MTD summaries, auto-ledger from invoice payments
+- **User Management** — Role-based (developer/owner/staff), add/remove users, password resets
+- **Server-Side Auth** — Salted SHA-256, session tokens, forced password change, forgot password via email
+
+**Backend (Google Apps Script):**
+- Three separate workbooks: CRM, Admin, Financials
+- Full CRUD API with role-based access control
+- Daily digest (7 AM) and weekly summary (Monday 8 AM) emails
+- Activity logging + security audit trail
+- Hourly session cleanup
 
 ## Tech Stack
 
@@ -25,10 +40,10 @@ A dynamic single-page website for **Bloom & Shine Cleaning Services LLC**, a Chr
 | Structure | HTML5 (single page + admin portal) |
 | Styling | Tailwind CSS v4 (browser CDN) + custom CSS |
 | Typography | Google Fonts (Great Vibes, Montserrat, Inter) |
-| Backend | Google Apps Script (web app → Google Sheets CRM + email) |
+| Backend | Google Apps Script → 3 Google Sheets workbooks |
 | PDFs | jsPDF + jspdf-autotable (client-side) |
 | Signatures | signature_pad (canvas-based) |
-| Booking | Cal.com (free tier embed) |
+| Booking | Cal.com free tier (placeholder — to be integrated) |
 | Hosting | GitHub Pages |
 
 **Zero build tools. Zero monthly cost. Zero server maintenance.**
@@ -37,106 +52,69 @@ A dynamic single-page website for **Bloom & Shine Cleaning Services LLC**, a Chr
 
 ```
 websiteCode/
-├── index.html              # Public-facing single-page site
-├── admin.html              # Admin dashboard (multi-user login)
-├── css/custom.css           # Brand palette, fonts, components
+├── index.html              # Public site — Hero, About, Services, Estimator, FAQ, Book, Contact
+├── admin.html              # Admin dashboard (multi-user, role-gated)
+├── css/custom.css           # Brand palette, animations, responsive (480px + 768px breakpoints)
 ├── js/
-│   ├── app.js               # Core: nav, data loading, checklists, contact form
-│   ├── estimator.js         # Pricing estimator wizard
-│   ├── contract.js          # Digital agreement + signature + PDF
-│   ├── invoice.js           # Invoice generator + PDF
-│   ├── admin.js             # Admin: auth, roles, dashboard, user management
-│   └── sheets.js            # Google Apps Script integration
+│   ├── app.js               # Nav, data loading, checklists, contact form, scroll reveal, modals
+│   ├── estimator.js         # Pricing wizard + service card auto-select
+│   ├── contract.js          # Booking flow: agreement → payment → schedule → complete
+│   ├── invoice.js           # Invoice PDF generator + payment links
+│   ├── admin.js             # Auth, CRUD tables, search, sort, contact detail, finance, users
+│   └── sheets.js            # API integration (auto-loads URL from admin settings)
 ├── data/
 │   ├── services.json        # Service definitions + pricing ranges
-│   ├── checklists.json      # Room-by-room checklists
-│   └── policies.json        # Policy text
-├── assets/                  # Logos, QR codes
+│   ├── checklists.json      # Room-by-room cleaning checklists
+│   └── policies.json        # Policy text (used in contract terms review)
+├── assets/                  # Transparent logos, QR codes
 ├── google-apps-script/
-│   ├── LiveSite.gs          # CRM API backend (auth, CRUD, notifications, digests)
-│   └── Admin.gs             # Provisioning + admin property management utilities
+│   ├── LiveSite.gs          # API: auth, CRUD, notifications, digests, auto-ledger
+│   └── Admin.gs             # Setup, provisioning, config management, user admin
 └── README.md
 ```
 
 ## Setup Guide
 
-### 1. GitHub Pages (Hosting)
+### 1. GitHub Pages
 
-Hosted on GitHub Pages. Pushes to `main` auto-deploy.
+Pushes to `main` auto-deploy.
 
-### 2. Google Apps Script (CRM Backend)
+### 2. Google Apps Script
 
-Two script files work together. `Admin.gs` has provisioning and management utilities; `LiveSite.gs` runs the API.
+`Admin.gs` provisions the system. `LiveSite.gs` runs the API.
 
-Setup creates:
-- **Bloom & Shine — CRM** (Contacts, Estimates, Contracts, Invoices, Activity Log, Dashboard)
-- **Bloom & Shine — Admin** (_Users, _Sessions, _Settings, _Audit — protected)
-- **Bloom & Shine — Financials** (Ledger, Categories, Financial Dashboard)
+Setup creates three workbooks:
+- **CRM** — Dashboard, Contacts, Estimates, Contracts, Invoices, Activity Log
+- **Admin** — _Users, _Sessions, _Settings, _Audit (protected)
+- **Financials** — Ledger, Categories (chart of accounts), Financial Dashboard
 
-1. Create a **blank** Google Sheet (this is just a launchpad — Setup creates the real workbooks)
-2. Go to **Extensions → Apps Script**
-3. Create two script files in the editor:
-   - Rename the default file to `LiveSite` and paste the contents of `google-apps-script/LiveSite.gs`
-   - Click **+** to add a new file, name it `Admin`, paste `google-apps-script/Admin.gs`
-4. In the toolbar, select `setup` from the function dropdown and click **Run**
-5. The script will prompt you for owner email, developer email, and a temporary password
-6. It then automatically builds:
-   - **CRM tabs:** Dashboard, Contacts, Estimates, Contracts, Invoices, Activity Log
-   - **Admin tabs:** _Users, _Sessions, _Settings, _Audit (protected)
-   - Formatted headers, dropdowns, conditional formatting, live dashboard formulas
-   - Daily digest (7 AM) and weekly summary (Monday 8 AM) email triggers
-   - Hourly session cleanup
-   - Shares the sheet with the developer account
-7. All sensitive config (emails, passwords, encryption salt) stored in **Script Properties** — never in code
-8. Click **Deploy → New deployment → Web app** (Execute as: Me, Access: Anyone)
-9. Copy the deployment URL
+Steps:
+1. Create a blank Google Sheet → Extensions → Apps Script
+2. Add two script files: `LiveSite` and `Admin`
+3. Run `setup()` — prompts for owner email, dev email, temp password
+4. Deploy → New deployment → Web app (Execute as: Me, Access: Anyone)
+5. Copy URL → admin dashboard Settings tab
 
-**Admin utilities** (run from the Apps Script editor):
-- `viewConfig()` — view current configuration
-- `updateConfig()` — modify a config property
-- `rotateSecrets()` — rotate encryption salt + session secret (invalidates all sessions/passwords)
-- `addUser()` — add a new admin user
-- `resetPassword()` — reset a user's password
+All secrets stored in Script Properties. No credentials in code.
 
 ### 3. Admin Dashboard
 
-The admin portal is at `admin.html` (linked in the site footer).
+Access at `admin.html`. Roles: `developer` (protected), `owner` (full business access), `staff` (stubbed).
 
-**Architecture:** All auth is server-side. The client holds only a session token. User accounts, passwords (salted SHA-256), and sessions are stored in protected Google Sheets tabs. Script Properties hold encryption secrets.
+### 4. Cal.com (Pending)
 
-**Roles:**
-- `developer` — Full access, protected account, cannot be modified by non-developers
-- `owner` — Full business access including user management for future employees
-- `staff` — Future employee access (stubbed)
+Online scheduling integration — placeholder in booking flow step 5. To be connected when owner creates Cal.com account.
 
-**First login:** Enter the Apps Script URL, then sign in with the credentials set during setup. All new users are forced to change their password on first login.
-
-**Features:**
-- Overview with live stats and recent activity feed
-- Contact, estimate, contract, and invoice data tables (all editable inline)
-- Contact detail modal: click a name to see full history (contracts, invoices, notes)
-- Invoice list with payment status highlighting + create invoice form + PDF export
-- Invoices are never deleted — only archived (Void status) for audit trail
-- User management: add/remove staff, reset passwords (developer + owner only)
-- Forgot password: email-based 6-character reset code with expiry and attempt limits
-- Settings: API connection, password management
-
-The Apps Script URL is stored in browser localStorage (set once on first login).
-
-### 4. Cal.com (Online Booking)
-
-1. Create a free account at [cal.com](https://cal.com)
-2. Set up event types (e.g., "Walk-Through", "Cleaning Appointment")
-3. Replace the booking placeholder with the Cal.com embed code
-
-## Common Maintenance
+## Maintenance
 
 | Task | How |
 |------|-----|
-| Change pricing | Edit `data/services.json` — `basePer100SqFt` is `[low, high]` per 100 sq ft |
-| Add a service | Add entry to `services` array in `data/services.json` |
-| Update policies | Edit `data/policies.json` — updates site and contract terms |
-| Update contact info | Search `index.html` for phone/email, update all instances |
+| Change pricing | Edit `data/services.json` |
+| Add a service | Add to `services` array in `data/services.json` |
+| Update policies | Edit `data/policies.json` |
+| Update contact info | Search `index.html` for phone/email |
+| Deploy backend changes | `npx @google/clasp push --force && npx @google/clasp deploy -i <ID> -d "description"` |
+| Deploy frontend changes | `git push` (auto-deploys via GitHub Pages) |
 
 ---
 
