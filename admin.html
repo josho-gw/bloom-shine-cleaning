@@ -595,11 +595,11 @@
           </div>
         </div>
 
-        <!-- Record Transaction + Manage Categories side by side -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <!-- Record Transaction + Ledger side by side -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           <!-- Record Transaction -->
-          <div class="bg-white rounded-xl shadow-sm p-6">
+          <div class="bg-white rounded-xl shadow-sm p-6 self-start">
             <h3 class="font-heading text-teal font-semibold mb-4">Record Transaction</h3>
             <form onsubmit="submitLedgerEntry(event)">
               <div class="space-y-3">
@@ -651,54 +651,37 @@
               <p id="fin-entry-status" class="text-xs mt-3">&nbsp;</p>
               <button type="submit" class="btn-primary w-full mt-3 text-xs">Record Transaction</button>
             </form>
+            <p class="text-xs text-gray-400 mt-4 italic">Need a new category? Contact your developer or use Misc.</p>
           </div>
 
-          <!-- Manage Categories -->
-          <div class="bg-white rounded-xl shadow-sm p-6 self-start">
-            <h3 class="font-heading text-teal font-semibold mb-4">Manage Categories</h3>
-            <div id="fin-categories-list" class="space-y-1 mb-4 max-h-64 overflow-y-auto">
-              <p class="text-gray-400 text-sm italic">Loading...</p>
-            </div>
-            <form onsubmit="addNewCategory(event)" class="flex gap-2 items-end">
-              <div class="flex-1">
-                <input type="text" id="fin-new-cat-name" class="form-input text-sm" placeholder="New category name">
+          <!-- Ledger Table -->
+          <div class="lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-heading text-teal font-semibold">Ledger</h3>
+              <div class="flex gap-2">
+                <button onclick="filterLedger('all')" class="ledger-filter active text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="all">All</button>
+                <button onclick="filterLedger('Income')" class="ledger-filter text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="Income">Income</button>
+                <button onclick="filterLedger('Expense')" class="ledger-filter text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="Expense">Expense</button>
               </div>
-              <select id="fin-new-cat-type" class="form-select text-sm" style="width:5.5rem;flex-shrink:0;">
-                <option value="Expense">Exp</option>
-                <option value="Income">Inc</option>
-              </select>
-              <button type="submit" class="btn-primary text-xs px-3 py-1.5 flex-shrink-0">Add</button>
-            </form>
-          </div>
-        </div>
-
-        <!-- Ledger Table (full width below) -->
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-heading text-teal font-semibold">Ledger</h3>
-            <div class="flex gap-2">
-              <button onclick="filterLedger('all')" class="ledger-filter active text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="all">All</button>
-              <button onclick="filterLedger('Income')" class="ledger-filter text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="Income">Income</button>
-              <button onclick="filterLedger('Expense')" class="ledger-filter text-xs px-3 py-1 rounded-full border border-gray-200 font-medium" data-filter="Expense">Expense</button>
             </div>
-          </div>
-          <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead class="bg-cream">
-                  <tr>
-                    <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Date</th>
-                    <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Type</th>
-                    <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Category</th>
-                    <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Description</th>
-                    <th class="text-right px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Amount</th>
-                    <th class="text-right px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Balance</th>
-                  </tr>
-                </thead>
-                <tbody id="ledger-table-body">
-                  <tr><td colspan="6" class="px-3 py-8 text-center text-gray-400 italic">No entries yet.</td></tr>
-                </tbody>
-              </table>
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-cream">
+                    <tr>
+                      <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Date</th>
+                      <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Type</th>
+                      <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Category</th>
+                      <th class="text-left px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Description</th>
+                      <th class="text-right px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Amount</th>
+                      <th class="text-right px-3 py-2 font-heading text-teal text-xs uppercase tracking-wider">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ledger-table-body">
+                    <tr><td colspan="6" class="px-3 py-8 text-center text-gray-400 italic">No entries yet.</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
