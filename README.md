@@ -53,8 +53,8 @@ websiteCode/
 │   └── policies.json        # Policy text
 ├── assets/                  # Logos, QR codes
 ├── google-apps-script/
-│   ├── Code.gs              # CRM API backend (auth, CRUD, notifications, digests)
-│   └── Setup.gs             # One-time provisioning + admin property management
+│   ├── LiveSite.gs          # CRM API backend (auth, CRUD, notifications, digests)
+│   └── Admin.gs             # Provisioning + admin property management utilities
 └── README.md
 ```
 
@@ -66,7 +66,7 @@ Hosted on GitHub Pages. Pushes to `main` auto-deploy.
 
 ### 2. Google Apps Script (CRM Backend)
 
-Two script files work together. `Setup.gs` provisions three separate workbooks; `Code.gs` runs the API.
+Two script files work together. `Admin.gs` has provisioning and management utilities; `LiveSite.gs` runs the API.
 
 Setup creates:
 - **Bloom & Shine — CRM** (Contacts, Estimates, Contracts, Invoices, Activity Log, Dashboard)
@@ -76,8 +76,8 @@ Setup creates:
 1. Create a **blank** Google Sheet (this is just a launchpad — Setup creates the real workbooks)
 2. Go to **Extensions → Apps Script**
 3. Create two script files in the editor:
-   - Rename the default `Code.gs` and paste the contents of `google-apps-script/Code.gs`
-   - Click **+** to add a new file, name it `Setup`, paste `google-apps-script/Setup.gs`
+   - Rename the default file to `LiveSite` and paste the contents of `google-apps-script/LiveSite.gs`
+   - Click **+** to add a new file, name it `Admin`, paste `google-apps-script/Admin.gs`
 4. In the toolbar, select `setup` from the function dropdown and click **Run**
 5. The script will prompt you for owner email, developer email, and a temporary password
 6. It then automatically builds:
