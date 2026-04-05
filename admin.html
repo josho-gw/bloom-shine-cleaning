@@ -189,54 +189,66 @@
 
       <!-- ==================== OVERVIEW TAB ==================== -->
       <div id="tab-overview" class="tab-content">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div class="bg-white rounded-xl p-6 shadow-sm">
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-gray-400 text-sm font-heading">Total Contacts</p>
-              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: var(--color-blush-light);">
-                <svg class="w-5 h-5 text-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              </div>
-            </div>
-            <p id="stat-contacts" class="text-3xl font-bold text-teal">—</p>
+
+        <!-- CRM Summary Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <div class="bg-white rounded-xl p-5 shadow-sm">
+            <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">Contacts</p>
+            <p id="stat-contacts" class="text-2xl font-bold text-teal mt-1">—</p>
           </div>
-          <div class="bg-white rounded-xl p-6 shadow-sm">
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-gray-400 text-sm font-heading">Estimates</p>
-              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: var(--color-sage-light);">
-                <svg class="w-5 h-5 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-              </div>
-            </div>
-            <p id="stat-estimates" class="text-3xl font-bold text-teal">—</p>
+          <div class="bg-white rounded-xl p-5 shadow-sm">
+            <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">Estimates</p>
+            <p id="stat-estimates" class="text-2xl font-bold text-teal mt-1">—</p>
           </div>
-          <div class="bg-white rounded-xl p-6 shadow-sm">
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-gray-400 text-sm font-heading">Active Contracts</p>
-              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: var(--color-blush-light);">
-                <svg class="w-5 h-5 text-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              </div>
-            </div>
-            <p id="stat-contracts" class="text-3xl font-bold text-teal">—</p>
+          <div class="bg-white rounded-xl p-5 shadow-sm">
+            <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">Contracts</p>
+            <p id="stat-contracts" class="text-2xl font-bold text-teal mt-1">—</p>
           </div>
-          <div class="bg-white rounded-xl p-6 shadow-sm">
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-gray-400 text-sm font-heading">Quick Actions</p>
-              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: var(--color-sage-light);">
-                <svg class="w-5 h-5 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              </div>
+          <div class="bg-white rounded-xl p-5 shadow-sm">
+            <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">Unpaid Invoices</p>
+            <p id="stat-unpaid" class="text-2xl font-bold text-rose mt-1">—</p>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="mb-10">
+          <h3 class="font-heading text-teal font-semibold text-lg mb-4">Recent Activity</h3>
+          <div id="recent-activity" class="bg-white rounded-xl shadow-sm p-5">
+            <p class="text-gray-400 text-sm italic">Connect Google Sheets to see recent activity.</p>
+          </div>
+        </div>
+
+        <!-- Recent Logins (dev/owner only) -->
+        <div class="mb-10" data-role="manager">
+          <h3 class="font-heading text-teal font-semibold text-lg mb-4">Recent Logins</h3>
+          <div id="recent-logins" class="bg-white rounded-xl shadow-sm p-5">
+            <p class="text-gray-400 text-sm italic">No login history available.</p>
+          </div>
+        </div>
+
+        <!-- Financial Summary (dev/owner only) -->
+        <div data-role="manager">
+          <h3 class="font-heading text-teal font-semibold text-lg mb-4">Financial Summary</h3>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-xl p-5 shadow-sm">
+              <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">MTD Income</p>
+              <p id="overview-mtd-income" class="text-2xl font-bold mt-1" style="color:#155724;">—</p>
             </div>
-            <div class="flex flex-col gap-2 mt-2">
-              <button onclick="switchTab('invoices')" class="text-xs text-left text-teal hover:underline">Create Invoice &rarr;</button>
-              <a href="https://venmo.com/bloomshinecleaningLLC" target="_blank" class="text-xs text-left text-teal hover:underline">Open Venmo &rarr;</a>
+            <div class="bg-white rounded-xl p-5 shadow-sm">
+              <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">MTD Expenses</p>
+              <p id="overview-mtd-expense" class="text-2xl font-bold mt-1" style="color:#721C24;">—</p>
+            </div>
+            <div class="bg-white rounded-xl p-5 shadow-sm">
+              <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">MTD Net</p>
+              <p id="overview-mtd-net" class="text-2xl font-bold text-teal mt-1">—</p>
+            </div>
+            <div class="bg-white rounded-xl p-5 shadow-sm">
+              <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">YTD Net</p>
+              <p id="overview-ytd-net" class="text-2xl font-bold text-teal mt-1">—</p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-xl p-6 shadow-sm">
-          <h3 class="font-heading text-teal font-bold text-lg mb-4">Recent Activity</h3>
-          <div id="recent-activity" class="space-y-3">
-            <p class="text-gray-400 text-sm italic">Connect Google Sheets to see recent activity.</p>
-          </div>
-        </div>
       </div>
 
       <!-- ==================== CONTACTS TAB ==================== -->
@@ -647,13 +659,15 @@
             <div id="fin-categories-list" class="space-y-1 mb-4 max-h-64 overflow-y-auto">
               <p class="text-gray-400 text-sm italic">Loading...</p>
             </div>
-            <form onsubmit="addNewCategory(event)" class="flex gap-2">
-              <input type="text" id="fin-new-cat-name" class="form-input flex-1 text-sm" placeholder="New category name">
-              <select id="fin-new-cat-type" class="form-select w-28 text-sm">
-                <option value="Expense">Expense</option>
-                <option value="Income">Income</option>
+            <form onsubmit="addNewCategory(event)" class="flex gap-2 items-end">
+              <div class="flex-1">
+                <input type="text" id="fin-new-cat-name" class="form-input text-sm" placeholder="New category name">
+              </div>
+              <select id="fin-new-cat-type" class="form-select text-sm" style="width:5.5rem;flex-shrink:0;">
+                <option value="Expense">Exp</option>
+                <option value="Income">Inc</option>
               </select>
-              <button type="submit" class="btn-primary text-xs px-3 py-1.5">Add</button>
+              <button type="submit" class="btn-primary text-xs px-3 py-1.5 flex-shrink-0">Add</button>
             </form>
           </div>
         </div>

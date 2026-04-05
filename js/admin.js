@@ -415,53 +415,81 @@ function renderTable(tabId, rows, columns) {
   }).join('');
 }
 
-function renderOverview(data) {
+async function renderOverview(data) {
   const contacts = data.contacts || [];
   const estimates = data.estimates || [];
   const contracts = data.contracts || [];
   const invoices = data.invoices || [];
 
+  // CRM stat cards
   setText('stat-contacts', contacts.length);
   setText('stat-estimates', estimates.length);
   setText('stat-contracts', contracts.length);
 
-  // Recent activity
+  // Unpaid invoices count
+  const unpaid = invoices.filter(i => i.Status && i.Status !== 'Paid' && i.Status !== 'Void' && i.Status !== 'Draft');
+  setText('stat-unpaid', unpaid.length || '0');
+
+  // Recent activity (last 8)
   const container = document.getElementById('recent-activity');
-  if (!container) return;
+  if (container) {
+    const all = [];
+    contacts.forEach(r => all.push({ type: 'contact', date: r.Timestamp, name: r.Name, detail: r['Service Interest'] || 'General' }));
+    estimates.forEach(r => all.push({ type: 'estimate', date: r.Timestamp, name: 'Visitor', detail: `${r.Service} — $${r['Low Estimate']}–$${r['High Estimate']}` }));
+    contracts.forEach(r => all.push({ type: 'contract', date: r.Timestamp, name: r.Name, detail: `${r.Service} (${r.Frequency})` }));
+    invoices.forEach(r => all.push({ type: 'invoice', date: r.Date, name: r['Client Name'], detail: `${r['Invoice #']} — $${r.Amount || 0} (${r.Status || 'Draft'})` }));
 
-  const all = [];
-  contacts.forEach(r => all.push({ type: 'contact', date: r.Timestamp, name: r.Name, detail: r['Service Interest'] || 'General' }));
-  estimates.forEach(r => all.push({ type: 'estimate', date: r.Timestamp, name: 'Visitor', detail: `${r.Service} — $${r['Low Estimate']}–$${r['High Estimate']}` }));
-  contracts.forEach(r => all.push({ type: 'contract', date: r.Timestamp, name: r.Name, detail: `${r.Service} (${r.Frequency})` }));
+    all.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const recent = all.slice(0, 8);
 
-  all.sort((a, b) => new Date(b.date) - new Date(a.date));
-  const recent = all.slice(0, 10);
-
-  if (recent.length === 0) {
-    container.innerHTML = '<p class="text-gray-400 text-sm italic">No activity yet.</p>';
-    return;
+    if (recent.length === 0) {
+      container.innerHTML = '<p class="text-gray-400 text-sm italic">No activity yet.</p>';
+    } else {
+      const icons = {
+        contact:  { bg: 'var(--color-blush-light)', cls: 'text-rose', l: 'C' },
+        estimate: { bg: 'var(--color-sage-light)', cls: 'text-teal', l: 'E' },
+        contract: { bg: 'var(--color-cream)', cls: 'text-gold', l: 'A' },
+        invoice:  { bg: '#CCE5FF', cls: 'text-teal', l: 'I' }
+      };
+      container.innerHTML = recent.map(item => {
+        const ic = icons[item.type];
+        return `
+          <div class="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:${ic.bg}">
+              <span class="text-xs font-bold ${ic.cls}">${ic.l}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium truncate">${esc(item.name)}</p>
+              <p class="text-xs text-gray-400 truncate">${esc(item.detail)}</p>
+            </div>
+            <span class="text-xs text-gray-400 flex-shrink-0">${formatDate(item.date)}</span>
+          </div>`;
+      }).join('');
+    }
   }
 
-  const icons = {
-    contact: { bg: 'var(--color-blush-light)', cls: 'text-rose', l: 'C' },
-    estimate: { bg: 'var(--color-sage-light)', cls: 'text-teal', l: 'E' },
-    contract: { bg: 'var(--color-cream)', cls: 'text-gold', l: 'A' }
-  };
+  // Recent logins (dev/owner only — pull from sessions if available)
+  const loginsContainer = document.getElementById('recent-logins');
+  if (loginsContainer && currentUser && (currentUser.role === 'developer' || currentUser.role === 'owner')) {
+    // Sessions aren't exposed via getAll, so show a placeholder until we add a dedicated endpoint
+    loginsContainer.innerHTML = '<p class="text-gray-400 text-sm italic">Login history is recorded in the Admin workbook _Audit tab.</p>';
+  }
 
-  container.innerHTML = recent.map(item => {
-    const ic = icons[item.type];
-    return `
-      <div class="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/50">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:${ic.bg}">
-          <span class="text-xs font-bold ${ic.cls}">${ic.l}</span>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium truncate">${esc(item.name)}</p>
-          <p class="text-xs text-gray-400 truncate">${esc(item.detail)}</p>
-        </div>
-        <span class="text-xs text-gray-400">${formatDate(item.date)}</span>
-      </div>`;
-  }).join('');
+  // Financial summary cards (dev/owner only)
+  if (currentUser && (currentUser.role === 'developer' || currentUser.role === 'owner')) {
+    const finRes = await api('getFinSummary');
+    if (finRes.result === 'success') {
+      setText('overview-mtd-income', '$' + (finRes.mtd.income || 0).toFixed(2));
+      setText('overview-mtd-expense', '$' + (finRes.mtd.expense || 0).toFixed(2));
+      setText('overview-mtd-net', '$' + (finRes.mtd.net || 0).toFixed(2));
+      setText('overview-ytd-net', '$' + (finRes.ytd.net || 0).toFixed(2));
+
+      const mtdNetEl = document.getElementById('overview-mtd-net');
+      const ytdNetEl = document.getElementById('overview-ytd-net');
+      if (mtdNetEl) mtdNetEl.style.color = finRes.mtd.net >= 0 ? '#155724' : '#721C24';
+      if (ytdNetEl) ytdNetEl.style.color = finRes.ytd.net >= 0 ? '#155724' : '#721C24';
+    }
+  }
 }
 
 // ============================================
