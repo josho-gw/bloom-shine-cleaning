@@ -42,15 +42,20 @@ function renderServiceCards() {
   if (!grid || !servicesData) return;
 
   grid.innerHTML = servicesData.services.map(service => `
-    <div class="service-card">
+    <div class="service-card" onclick="openEstimatorForService('${service.id}')" style="cursor:pointer;">
       <div class="text-4xl mb-2">${service.icon}</div>
       <h3 class="text-lg">${service.name}</h3>
       <p class="text-gray-500 text-sm mt-2 mb-4">${service.description}</p>
-      ${checklistsData && checklistsData[service.id] ? `
-        <button onclick="openChecklist('${service.id}')" class="text-sm text-rose hover:underline font-medium">
-          View Checklist &rarr;
+      <div class="flex items-center justify-center gap-4 mt-2">
+        <button onclick="event.stopPropagation(); openEstimatorForService('${service.id}')" class="text-sm text-teal hover:underline font-medium">
+          Get Estimate &rarr;
         </button>
-      ` : ''}
+        ${checklistsData && checklistsData[service.id] ? `
+          <button onclick="event.stopPropagation(); openChecklist('${service.id}')" class="text-sm text-rose hover:underline font-medium">
+            View Checklist
+          </button>
+        ` : ''}
+      </div>
     </div>
   `).join('');
 }
@@ -279,6 +284,22 @@ function initOverlayClose() {
 }
 
 // ============================================
+// SCROLL REVEAL
+// ============================================
+
+function initScrollReveal() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => observer.observe(el));
+}
+
+// ============================================
 // INIT
 // ============================================
 
@@ -289,4 +310,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavbarScroll();
   initEscapeClose();
   initOverlayClose();
+  initScrollReveal();
 });

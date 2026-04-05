@@ -441,12 +441,80 @@ details.policy-item > div {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.6s ease forwards;
 }
 
 .animate-slide-up {
   animation: slideUp 0.6s ease forwards;
+}
+
+/* Scroll-triggered reveal — elements start hidden, JS adds .revealed */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.reveal-stagger.revealed > *:nth-child(1) { transition-delay: 0s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.revealed > *:nth-child(2) { transition-delay: 0.08s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.revealed > *:nth-child(3) { transition-delay: 0.16s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.revealed > *:nth-child(4) { transition-delay: 0.24s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.revealed > *:nth-child(5) { transition-delay: 0.32s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.revealed > *:nth-child(6) { transition-delay: 0.40s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.revealed > *:nth-child(7) { transition-delay: 0.48s; opacity: 1; transform: translateY(0); }
+
+/* Decorative floral accent — CSS-only leaf/petal shapes */
+.deco-leaf {
+  position: absolute;
+  width: 40px;
+  height: 60px;
+  background: var(--color-sage);
+  opacity: 0.08;
+  border-radius: 0 50% 50% 50%;
+  pointer-events: none;
+}
+
+.deco-petal {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background: var(--color-blush);
+  opacity: 0.1;
+  border-radius: 50% 0 50% 50%;
+  pointer-events: none;
+}
+
+/* Soft glow behind hero logo */
+.logo-glow {
+  filter: drop-shadow(0 0 40px rgba(212, 132, 138, 0.15)) drop-shadow(0 0 80px rgba(183, 201, 168, 0.1));
 }
 
 /* --- Payment QR Codes --- */

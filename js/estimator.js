@@ -38,6 +38,39 @@ function openEstimator() {
   document.body.style.overflow = 'hidden';
 }
 
+/**
+ * Open estimator with a specific service pre-selected, skip to step 2.
+ */
+function openEstimatorForService(serviceId) {
+  if (!servicesData) return;
+
+  const service = servicesData.services.find(s => s.id === serviceId);
+  if (!service) { openEstimator(); return; }
+
+  const modal = document.getElementById('estimator-modal');
+  if (!modal) return;
+
+  // Reset and pre-select
+  estCurrentStep = 2;
+  estSelection = {
+    serviceId: service.id,
+    serviceName: service.name,
+    basePer100: service.basePer100SqFt,
+    sqftValue: null, sqftLabel: null,
+    frequencyId: null, frequencyName: null,
+    discount: 0, addons: [], addonTotal: 0
+  };
+
+  renderEstimatorOptions();
+  showEstimatorStep(2);
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  // Enable the step 1 next button since service is already selected
+  const btn = document.getElementById('est-next-1');
+  if (btn) btn.disabled = false;
+}
+
 function closeEstimator() {
   const modal = document.getElementById('estimator-modal');
   if (modal) {
