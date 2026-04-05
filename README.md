@@ -1,6 +1,6 @@
 # Bloom & Shine Cleaning Services — Website
 
-A dynamic single-page website for **Bloom & Shine Cleaning Services LLC**, a Christ-centered cleaning and organization company serving Hall & Jackson County, GA.
+A dynamic single-page website for **Bloom & Shine Cleaning Services LLC**, a Christ-centered cleaning and organization company serving Hall, Jackson & Gwinnett County, GA.
 
 ---
 

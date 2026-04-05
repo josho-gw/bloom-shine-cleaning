@@ -200,7 +200,7 @@ function generateInvoicePDF() {
   doc.text('bloom.shinecleaningservices@yahoo.com', margin, y);
   doc.text(`Date: ${invoiceDate}`, pageWidth - margin, y, { align: 'right' });
   y += 4;
-  doc.text('Hall & Jackson County, GA', margin, y);
+  doc.text('Hall, Jackson & Gwinnett County, GA', margin, y);
   y += 10;
 
   // Divider
