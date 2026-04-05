@@ -249,10 +249,10 @@ body {
 
 .modal-close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 2rem;
-  height: 2rem;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border: none;
   background: var(--color-gray-100);
   border-radius: 50%;
@@ -260,7 +260,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   color: var(--color-gray-600);
   transition: all 0.2s;
 }
@@ -373,7 +373,7 @@ details.policy-item > div {
 
 .form-select {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
   border: 1.5px solid var(--color-gray-200);
   border-radius: 0.5rem;
   font-family: var(--font-body);
@@ -508,5 +508,38 @@ details.policy-item > div {
     padding: 0.625rem 1.5rem;
     font-size: 0.8rem;
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    width: 98%;
+    padding: 1rem;
+    border-radius: 0.75rem;
+  }
+
+  .form-input, .form-select {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    padding: 0.625rem 0.75rem;
+  }
+
+  .form-select {
+    padding-right: 2rem;
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+  }
+
+  .nav-link {
+    font-size: 0.75rem;
+  }
+
+  .section-divider {
+    width: 60px;
+  }
+
+  .qr-code {
+    max-width: 160px;
   }
 }

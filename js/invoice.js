@@ -90,9 +90,9 @@ function renderInvoiceLineItems() {
         class="form-input flex-1 text-sm"
         onchange="updateInvoiceLineItem(${item.id}, 'description', this.value)">
       <div class="relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+        <span class="absolute text-sm" style="left:0.5rem;top:50%;transform:translateY(-50%);color:var(--color-gray-400);pointer-events:none;">$</span>
         <input type="number" value="${item.amount || ''}" placeholder="0.00"
-          class="form-input w-24 text-sm pl-7 text-right"
+          class="form-input w-28 text-sm text-right" style="padding-left:1.5rem;"
           onchange="updateInvoiceLineItem(${item.id}, 'amount', this.value)"
           oninput="updateInvoiceLineItem(${item.id}, 'amount', this.value)"
           min="0" step="0.01">

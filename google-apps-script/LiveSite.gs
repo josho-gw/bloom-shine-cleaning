@@ -289,11 +289,15 @@ function rows_(ss, name) {
   if (!sheet || sheet.getLastRow() <= 1) return [];
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
-  return data.map(function(row, idx) {
+  var results = [];
+  data.forEach(function(row, idx) {
+    // Skip empty rows (from checkbox/validation ranges)
+    if (!row[0] && !row[1]) return;
     var obj = { _row: idx + 2 };
     headers.forEach(function(h, c) { obj[h] = row[c]; });
-    return obj;
+    results.push(obj);
   });
+  return results;
 }
 
 function getUsers_(session) {
