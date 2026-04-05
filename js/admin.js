@@ -1091,7 +1091,6 @@ function openContactDetail(rowNum) {
   const data = window._crmData;
   if (!data) return;
 
-  // Find the contact
   const contact = (data.contacts || []).find(c => c._row === rowNum);
   if (!contact) return;
 
@@ -1099,25 +1098,50 @@ function openContactDetail(rowNum) {
   const email = (contact.Email || '').toLowerCase();
   const phone = contact.Phone || '';
 
-  // Find related records by name or email
-  const relatedContracts = (data.contracts || []).filter(c =>
-    (c.Name && c.Name.toLowerCase() === name.toLowerCase()) ||
-    (c.Email && c.Email.toLowerCase() === email)
-  );
+  // Find related records
+  const matchName = n => n && n.toLowerCase() === name.toLowerCase();
+  const matchEmail = e => e && email && e.toLowerCase() === email;
+  const match = (n, e) => matchName(n) || matchEmail(e);
 
-  const relatedInvoices = (data.invoices || []).filter(inv =>
-    (inv['Client Name'] && inv['Client Name'].toLowerCase() === name.toLowerCase()) ||
-    (inv['Client Email'] && inv['Client Email'].toLowerCase() === email)
-  );
+  const relatedContracts = (data.contracts || []).filter(c => match(c.Name, c.Email));
+  const relatedInvoices = (data.invoices || []).filter(i => match(i['Client Name'], i['Client Email']));
 
-  const relatedEstimates = (data.estimates || []).filter(est => {
-    // Estimates don't have names, so match by timestamp proximity or service
-    return false; // Stub — estimates are anonymous from the public form
+  // Status color helper
+  const statusDot = (status) => {
+    const colors = {
+      'Active': '#16A34A', 'Booked': '#16A34A', 'Paid': '#16A34A', 'Completed': '#16A34A',
+      'New': '#2D5F5D', 'Contacted': '#2D5F5D', 'Quoted': '#2563EB',
+      'Sent': '#D97706', 'Draft': '#D97706', 'Paused': '#D97706',
+      'Terminated': '#DC2626', 'Lost': '#DC2626', 'Overdue': '#DC2626', 'Void': '#9CA3AF'
+    };
+    return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[status] || '#9CA3AF'};margin-right:6px;"></span>`;
+  };
+
+  // Build unified timeline (most recent first)
+  const timeline = [];
+  relatedContracts.forEach(c => {
+    timeline.push({
+      date: c.Timestamp, type: 'Contract', icon: 'A',
+      title: `${c.Service} — ${c.Frequency}`,
+      status: c.Status || 'New',
+      detail: c.Notes || '',
+      row: c._row
+    });
   });
+  relatedInvoices.forEach(i => {
+    timeline.push({
+      date: i.Date, type: 'Invoice', icon: 'I',
+      title: `${i['Invoice #']} — $${i.Amount || 0}`,
+      status: i.Status || 'Draft',
+      detail: i.Service || '',
+      row: i._row
+    });
+  });
+  timeline.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
-  // Build the modal content
+  // Build modal
   let html = `
-    <div class="flex items-start justify-between mb-6">
+    <div class="flex items-start justify-between mb-4">
       <div>
         <h3 class="font-heading text-teal text-2xl font-bold">${esc(name)}</h3>
         <p class="text-gray-400 text-sm">${esc(contact['Service Interest'] || 'General inquiry')}</p>
@@ -1125,96 +1149,124 @@ function openContactDetail(rowNum) {
       <span class="status-badge status-${(contact.Status || 'new').toLowerCase()}">${esc(contact.Status || 'New')}</span>
     </div>
 
-    <!-- Contact Info -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-      <div class="bg-cream rounded-lg p-4">
-        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Email</p>
-        <a href="mailto:${esc(email)}" class="text-teal hover:underline font-medium">${esc(email || '—')}</a>
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <a href="mailto:${esc(email)}" class="bg-cream rounded-lg p-3 hover:shadow-sm transition-shadow">
+        <p class="text-xs text-gray-400 uppercase tracking-wider">Email</p>
+        <p class="text-teal font-medium text-sm truncate">${esc(email || '—')}</p>
+      </a>
+      <a href="tel:${esc(phone)}" class="bg-cream rounded-lg p-3 hover:shadow-sm transition-shadow">
+        <p class="text-xs text-gray-400 uppercase tracking-wider">Phone</p>
+        <p class="text-teal font-medium text-sm">${esc(phone || '—')}</p>
+      </a>
+    </div>
+
+    ${contact.Message ? `<div class="bg-cream rounded-lg p-3 mb-4"><p class="text-xs text-gray-400 uppercase mb-1">Message</p><p class="text-sm text-gray-600">${esc(contact.Message)}</p></div>` : ''}
+
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="bg-cream rounded-lg p-3">
+        <p class="text-xs text-gray-400 uppercase">Notes</p>
+        <p class="text-sm text-gray-600">${esc(contact.Notes || '—')}</p>
       </div>
-      <div class="bg-cream rounded-lg p-4">
-        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Phone</p>
-        <a href="tel:${esc(phone)}" class="text-teal hover:underline font-medium">${esc(phone || '—')}</a>
+      <div class="bg-cream rounded-lg p-3">
+        <p class="text-xs text-gray-400 uppercase">Follow-Up</p>
+        <p class="text-sm">${contact['Follow-Up Date'] ? formatDate(contact['Follow-Up Date']) : '—'}</p>
       </div>
     </div>
 
-    <!-- Message -->
-    ${contact.Message ? `
-    <div class="mb-6">
-      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Message</p>
-      <div class="bg-cream rounded-lg p-4 text-sm text-gray-600">${esc(contact.Message)}</div>
-    </div>` : ''}
+    <p class="text-xs text-gray-400 mb-4">First contact: ${formatDate(contact.Timestamp)}</p>
 
-    <!-- Notes -->
-    <div class="mb-6">
-      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Notes</p>
-      <div class="bg-cream rounded-lg p-4 text-sm text-gray-600">${esc(contact.Notes || 'No notes yet.')}</div>
+    <hr class="border-gray-200 mb-4">
+
+    <!-- History Timeline -->
+    <div class="flex items-center justify-between mb-3">
+      <h4 class="font-heading text-teal font-semibold">History</h4>
+      <div class="flex gap-3 text-xs text-gray-400">
+        <span>${relatedContracts.length} contract${relatedContracts.length !== 1 ? 's' : ''}</span>
+        <span>${relatedInvoices.length} invoice${relatedInvoices.length !== 1 ? 's' : ''}</span>
+      </div>
     </div>
-
-    <!-- Follow-up -->
-    <div class="mb-6">
-      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Follow-Up Date</p>
-      <p class="text-sm">${contact['Follow-Up Date'] ? formatDate(contact['Follow-Up Date']) : 'Not set'}</p>
-    </div>
-
-    <p class="text-xs text-gray-400 mb-2">First contact: ${formatDate(contact.Timestamp)}</p>
-
-    <hr class="my-6 border-gray-200">
   `;
 
-  // Contracts section
-  html += `<h4 class="font-heading text-teal font-semibold mb-3">Contracts (${relatedContracts.length})</h4>`;
-  if (relatedContracts.length > 0) {
-    html += '<div class="space-y-2 mb-6">';
-    relatedContracts.forEach(c => {
+  if (timeline.length > 0) {
+    html += '<div class="space-y-2 max-h-64 overflow-y-auto mb-4">';
+    timeline.forEach(item => {
+      const typeColors = { Contract: '#2D5F5D', Invoice: '#2563EB' };
       html += `
-        <div class="bg-cream rounded-lg p-3 flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium">${esc(c.Service)} — ${esc(c.Frequency)}</p>
-            <p class="text-xs text-gray-400">${formatDate(c.Timestamp)}</p>
+        <div class="border-l-3 rounded-r-lg p-3 flex items-center justify-between bg-cream" style="border-left: 3px solid ${typeColors[item.type] || '#ccc'};">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              ${statusDot(item.status)}
+              <p class="text-sm font-medium truncate">${esc(item.title)}</p>
+            </div>
+            <p class="text-xs text-gray-400 ml-3.5">${esc(item.type)} &bull; ${formatDate(item.date)}${item.detail ? ' &bull; ' + esc(item.detail) : ''}</p>
           </div>
-          <span class="status-badge status-${(c.Status || 'new').toLowerCase()}">${esc(c.Status || 'New')}</span>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background:${
+            item.status === 'Active' || item.status === 'Paid' || item.status === 'Completed' || item.status === 'Booked' ? '#D4EDDA' :
+            item.status === 'Terminated' || item.status === 'Lost' || item.status === 'Overdue' ? '#F8D7DA' :
+            item.status === 'Paused' || item.status === 'Sent' || item.status === 'Draft' ? '#FFF3CD' : '#E2E3E5'
+          };color:${
+            item.status === 'Active' || item.status === 'Paid' || item.status === 'Completed' || item.status === 'Booked' ? '#155724' :
+            item.status === 'Terminated' || item.status === 'Lost' || item.status === 'Overdue' ? '#721C24' :
+            item.status === 'Paused' || item.status === 'Sent' || item.status === 'Draft' ? '#856404' : '#383D41'
+          };">${esc(item.status)}</span>
         </div>`;
     });
     html += '</div>';
   } else {
-    html += '<p class="text-sm text-gray-400 italic mb-6">No contracts on file.</p>';
+    html += '<p class="text-sm text-gray-400 italic mb-4">No history on file.</p>';
   }
 
-  // Invoices section
-  html += `<h4 class="font-heading text-teal font-semibold mb-3">Invoices (${relatedInvoices.length})</h4>`;
-  if (relatedInvoices.length > 0) {
-    html += '<div class="space-y-2 mb-6">';
-    relatedInvoices.forEach(inv => {
-      const isPaid = inv.Status === 'Paid';
-      const bgClass = isPaid ? 'border-l-4' : 'border-l-4';
-      const borderColor = isPaid ? 'border-green-500' : (inv.Status === 'Overdue' ? 'border-red-500' : 'border-yellow-500');
-      html += `
-        <div class="bg-cream rounded-lg p-3 ${bgClass} ${borderColor} flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium">${esc(inv['Invoice #'])} — ${esc(inv.Service)}</p>
-            <p class="text-xs text-gray-400">${formatDate(inv.Date)}</p>
-          </div>
-          <div class="text-right">
-            <p class="font-semibold ${isPaid ? 'text-green-700' : 'text-rose'}">$${esc(String(inv.Amount || 0))}</p>
-            <span class="status-badge status-${(inv.Status || 'draft').toLowerCase()}">${esc(inv.Status || 'Draft')}</span>
-          </div>
-        </div>`;
-    });
-    html += '</div>';
-  } else {
-    html += '<p class="text-sm text-gray-400 italic mb-6">No invoices on file.</p>';
-  }
-
-  // Edit button
+  // Quick actions
   html += `
-    <div class="mt-6 flex gap-3">
-      <button onclick="closeContactDetail(); openEditModal('Contacts', ${rowNum})" class="btn-primary text-xs px-4 py-2">Edit Contact</button>
-      <button onclick="closeContactDetail()" class="btn-secondary text-xs px-4 py-2">Close</button>
+    <hr class="border-gray-200 mb-4">
+    <div class="flex flex-wrap gap-2">
+      <button onclick="closeContactDetail(); openEditModal('Contacts', ${rowNum})" class="btn-primary text-xs px-3 py-1.5">Edit Contact</button>
+      <button onclick="logContactNote(${rowNum})" class="btn-secondary text-xs px-3 py-1.5">Add Note</button>
+      <button onclick="logLostContract(${rowNum})" class="text-xs px-3 py-1.5 rounded-lg font-semibold text-white" style="background:#DC2626;border:none;cursor:pointer;">Log Lost Contract</button>
+      <button onclick="closeContactDetail()" class="btn-secondary text-xs px-3 py-1.5">Close</button>
     </div>`;
 
   document.getElementById('contact-detail-content').innerHTML = html;
   document.getElementById('contact-detail-modal').classList.add('active');
   document.body.style.overflow = 'hidden';
+}
+
+async function logContactNote(rowNum) {
+  const note = prompt('Enter a note for this contact:');
+  if (!note) return;
+
+  // Append to existing notes
+  const contact = (window._crmData?.contacts || []).find(c => c._row === rowNum);
+  const existing = contact?.Notes || '';
+  const timestamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const updated = existing ? existing + ' | ' + timestamp + ': ' + note : timestamp + ': ' + note;
+
+  const result = await api('updateRow', { sheet: 'Contacts', row: rowNum, updates: { Notes: updated } });
+  if (result.result === 'success') {
+    await loadAllData();
+    openContactDetail(rowNum);
+  } else {
+    alert(result.message || 'Failed to save note.');
+  }
+}
+
+async function logLostContract(rowNum) {
+  const reason = prompt('Reason for lost contract (optional):');
+  if (reason === null) return; // Cancelled
+
+  const contact = (window._crmData?.contacts || []).find(c => c._row === rowNum);
+  const existing = contact?.Notes || '';
+  const timestamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const lostNote = timestamp + ': CONTRACT LOST' + (reason ? ' — ' + reason : '');
+  const updated = existing ? existing + ' | ' + lostNote : lostNote;
+
+  const result = await api('updateRow', { sheet: 'Contacts', row: rowNum, updates: { Status: 'Lost', Notes: updated } });
+  if (result.result === 'success') {
+    await loadAllData();
+    openContactDetail(rowNum);
+  } else {
+    alert(result.message || 'Failed to update.');
+  }
 }
 
 function closeContactDetail() {

@@ -75,6 +75,17 @@ function contractNextStep(step) {
       return;
     }
 
+    // Auto-capture: submit contact to CRM if name + contact method provided
+    if (name && (email || phone)) {
+      submitContact({
+        name: name,
+        email: email,
+        phone: phone,
+        service: service,
+        message: 'Booking flow — ' + frequency + ' ' + service + ' | Address: ' + address
+      });
+    }
+
     // Populate terms
     populateTerms();
   }
