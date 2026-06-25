@@ -27,9 +27,10 @@
        LOGIN SCREEN
        ============================================ -->
   <div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
-    <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+    <div class="auth-card bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
       <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-14 mx-auto mb-4">
       <h1 class="font-heading text-teal text-xl font-bold mb-1">Admin Portal</h1>
+      <div class="section-divider"></div>
       <p class="text-gray-400 text-sm mb-6">Sign in with your email and password</p>
 
       <form onsubmit="attemptLogin(event)">
@@ -67,11 +68,12 @@
        FORCE PASSWORD CHANGE SCREEN
        ============================================ -->
   <div id="force-change-screen" class="hidden min-h-screen flex items-center justify-center px-4">
-    <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+    <div class="auth-card bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
       <div class="w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: var(--color-sage-light);">
         <svg class="w-7 h-7 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
       </div>
       <h1 class="font-heading text-teal text-xl font-bold mb-1">Set Your Password</h1>
+      <div class="section-divider"></div>
       <p class="text-gray-400 text-sm mb-6">You must change your default password before continuing.</p>
 
       <form onsubmit="submitForceChange(event)">
@@ -96,9 +98,10 @@
        FORGOT PASSWORD SCREEN
        ============================================ -->
   <div id="forgot-screen" class="hidden min-h-screen flex items-center justify-center px-4">
-    <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+    <div class="auth-card bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
       <img src="assets/logo-compact.png" alt="Bloom & Shine" class="h-12 mx-auto mb-4">
       <h1 class="font-heading text-teal text-xl font-bold mb-1">Reset Password</h1>
+      <div class="section-divider"></div>
 
       <!-- Step 1: Enter Email -->
       <div id="forgot-step-1">
@@ -192,19 +195,19 @@
 
         <!-- CRM Summary Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <div class="bg-white rounded-xl p-5 shadow-sm">
+          <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
             <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">Contacts</p>
             <p id="stat-contacts" class="text-2xl font-bold text-teal mt-1">—</p>
           </div>
-          <div class="bg-white rounded-xl p-5 shadow-sm">
+          <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
             <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">Estimates</p>
             <p id="stat-estimates" class="text-2xl font-bold text-teal mt-1">—</p>
           </div>
-          <div class="bg-white rounded-xl p-5 shadow-sm">
+          <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
             <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">Contracts</p>
             <p id="stat-contracts" class="text-2xl font-bold text-teal mt-1">—</p>
           </div>
-          <div class="bg-white rounded-xl p-5 shadow-sm">
+          <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
             <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">Unpaid Invoices</p>
             <p id="stat-unpaid" class="text-2xl font-bold text-rose mt-1">—</p>
           </div>
@@ -230,19 +233,19 @@
         <div data-role="manager">
           <h3 class="font-heading text-teal font-semibold text-lg mb-4">Financial Summary</h3>
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white rounded-xl p-5 shadow-sm">
+            <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
               <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">MTD Income</p>
               <p id="overview-mtd-income" class="text-2xl font-bold mt-1" style="color:#155724;">—</p>
             </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm">
+            <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
               <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">MTD Expenses</p>
               <p id="overview-mtd-expense" class="text-2xl font-bold mt-1" style="color:#721C24;">—</p>
             </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm">
+            <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
               <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">MTD Net</p>
               <p id="overview-mtd-net" class="text-2xl font-bold text-teal mt-1">—</p>
             </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm">
+            <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
               <p class="text-gray-400 text-xs font-heading uppercase tracking-wider">YTD Net</p>
               <p id="overview-ytd-net" class="text-2xl font-bold text-teal mt-1">—</p>
             </div>
@@ -569,19 +572,19 @@
 
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div class="bg-white rounded-xl p-5 shadow-sm">
+          <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
             <p class="text-gray-400 text-xs font-heading uppercase tracking-wider mb-1">YTD Income</p>
             <p id="fin-ytd-income" class="text-2xl font-bold" style="color: #155724;">$0.00</p>
           </div>
-          <div class="bg-white rounded-xl p-5 shadow-sm">
+          <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
             <p class="text-gray-400 text-xs font-heading uppercase tracking-wider mb-1">YTD Expenses</p>
             <p id="fin-ytd-expense" class="text-2xl font-bold" style="color: #721C24;">$0.00</p>
           </div>
-          <div class="bg-white rounded-xl p-5 shadow-sm">
+          <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
             <p class="text-gray-400 text-xs font-heading uppercase tracking-wider mb-1">YTD Net Income</p>
             <p id="fin-ytd-net" class="text-2xl font-bold text-teal">$0.00</p>
           </div>
-          <div class="bg-white rounded-xl p-5 shadow-sm">
+          <div class="stat-card bg-white rounded-xl p-5 shadow-sm">
             <p class="text-gray-400 text-xs font-heading uppercase tracking-wider mb-1">This Month Net</p>
             <p id="fin-mtd-net" class="text-2xl font-bold text-teal">$0.00</p>
           </div>
@@ -796,6 +799,53 @@
       border-color: var(--color-sage);
       background: var(--color-sage-light);
     }
+
+    /* ===== Botanical polish (2026-06-25) ===== */
+    body { background: linear-gradient(175deg, var(--color-cream) 0%, #FBF4F1 60%, var(--color-sage-light) 155%); }
+
+    /* Auth screens — brand-facing, richer treatment */
+    #login-screen, #force-change-screen, #forgot-screen {
+      position: relative; overflow: hidden;
+      background: linear-gradient(150deg, var(--color-cream) 0%, var(--color-blush-light) 52%, var(--color-sage-light) 100%);
+    }
+    #login-screen::before, #force-change-screen::before, #forgot-screen::before,
+    #login-screen::after, #force-change-screen::after, #forgot-screen::after {
+      content: ''; position: absolute; border-radius: 50%; pointer-events: none;
+    }
+    #login-screen::before, #force-change-screen::before, #forgot-screen::before {
+      width: 340px; height: 340px; top: -90px; left: -90px;
+      background: radial-gradient(circle, rgba(183,201,168,0.30), transparent 70%);
+    }
+    #login-screen::after, #force-change-screen::after, #forgot-screen::after {
+      width: 380px; height: 380px; bottom: -120px; right: -120px;
+      background: radial-gradient(circle, rgba(242,215,217,0.32), transparent 70%);
+    }
+    .auth-card {
+      position: relative; overflow: hidden; z-index: 1;
+      box-shadow: 0 18px 50px rgba(45,95,93,0.13) !important;
+    }
+    .auth-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+      background: linear-gradient(90deg, var(--color-sage), var(--color-blush), var(--color-rose));
+    }
+
+    /* Dashboard — work tool, lighter touch */
+    #admin-dashboard > header::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+      background: linear-gradient(90deg, var(--color-sage), var(--color-blush), var(--color-rose));
+      opacity: 0.9;
+    }
+    .stat-card {
+      position: relative; overflow: hidden;
+      box-shadow: 0 6px 20px rgba(45,95,93,0.06) !important;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--color-sage), var(--color-blush), var(--color-rose));
+      opacity: 0.7;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(45,95,93,0.12) !important; }
   </style>
 
   <script src="js/sheets.js"></script>
