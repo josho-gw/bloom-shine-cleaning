@@ -43,7 +43,7 @@ function renderServiceCards() {
 
   grid.innerHTML = servicesData.services.map(service => `
     <div class="service-card" onclick="openEstimatorForService('${service.id}')" style="cursor:pointer;">
-      <div class="text-4xl mb-2">${service.icon}</div>
+      <div class="svc-icon">${service.icon}</div>
       <h3 class="text-lg">${service.name}</h3>
       <p class="text-gray-500 text-sm mt-2 mb-4">${service.description}</p>
       <div class="flex items-center justify-center gap-4 mt-2">

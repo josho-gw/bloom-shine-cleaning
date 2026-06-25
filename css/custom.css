@@ -611,3 +611,171 @@ details.policy-item > div {
     max-width: 160px;
   }
 }
+
+/* ============================================
+   BOTANICAL POLISH — lush & botanical pass (2026-06-25)
+   ============================================ */
+
+/* --- Decorative botanical sprigs (inline SVG; currentColor tints) --- */
+.botanical {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  color: var(--color-sage-dark);
+  opacity: 0.20;
+  pointer-events: none;
+  z-index: 0;
+}
+.botanical.is-rose { color: var(--color-rose); opacity: 0.16; }
+.botanical-tl { top: 14px; left: 14px; }
+.botanical-tr { top: 14px; right: 14px; transform: scaleX(-1); }
+.botanical-bl { bottom: 14px; left: 14px; transform: scaleY(-1); }
+.botanical-br { bottom: 14px; right: 14px; transform: scale(-1, -1); }
+@media (max-width: 640px) {
+  .botanical { width: 84px; height: 84px; opacity: 0.15; }
+}
+
+/* --- Ornamental section divider (flower flanked by gradient rules) --- */
+.section-divider {
+  position: relative;
+  width: 156px;
+  height: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%23D4848A'%3E%3Cellipse cx='12' cy='5.4' rx='2.7' ry='3.5'/%3E%3Cellipse cx='12' cy='18.6' rx='2.7' ry='3.5'/%3E%3Cellipse cx='5.4' cy='12' rx='3.5' ry='2.7'/%3E%3Cellipse cx='18.6' cy='12' rx='3.5' ry='2.7'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='3' fill='%23C9A96E'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 22px 22px;
+  background-color: transparent;
+  margin: 0.6rem auto 1.6rem;
+}
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 54px;
+  height: 2px;
+  border-radius: 2px;
+  transform: translateY(-50%);
+}
+.section-divider::before { left: 0; background: linear-gradient(90deg, transparent, var(--color-sage-dark)); }
+.section-divider::after  { right: 0; background: linear-gradient(90deg, var(--color-rose), transparent); }
+
+/* --- Elevated service cards: icon medallion + gradient top accent --- */
+.service-card {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 22px rgba(45, 95, 93, 0.06);
+}
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-sage), var(--color-blush), var(--color-rose));
+  opacity: 0.65;
+  transition: opacity 0.3s ease;
+}
+.service-card:hover::before { opacity: 1; }
+.service-card:hover {
+  box-shadow: 0 16px 38px rgba(45, 95, 93, 0.13);
+}
+.svc-icon {
+  width: 66px;
+  height: 66px;
+  margin: 0.25rem auto 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.85rem;
+  line-height: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, var(--color-blush-light), var(--color-sage-light));
+  box-shadow: inset 0 0 0 1px rgba(143, 168, 138, 0.35), 0 4px 10px rgba(45, 95, 93, 0.06);
+  transition: transform 0.3s ease;
+}
+.service-card:hover .svc-icon { transform: scale(1.08) rotate(-3deg); }
+
+/* --- Add-on chips medallion (smaller) --- */
+.addon-icon {
+  width: 46px; height: 46px; margin: 0 auto 0.5rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, var(--color-blush-light), var(--color-sage-light));
+  box-shadow: inset 0 0 0 1px rgba(143, 168, 138, 0.3);
+}
+
+/* --- Hero trust badges --- */
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 2.25rem;
+}
+.trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.95rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--color-sage);
+  border-radius: 999px;
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-teal);
+  backdrop-filter: blur(2px);
+}
+.trust-badge::before {
+  content: '';
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--color-rose);
+}
+
+/* --- About: botanical brand card (replaces plain logo box) --- */
+.about-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  padding: 2.75rem 2rem;
+  text-align: center;
+  background: linear-gradient(155deg, var(--color-blush-light) 0%, var(--color-cream) 45%, var(--color-sage-light) 100%);
+  box-shadow: 0 14px 40px rgba(45, 95, 93, 0.10);
+  border: 1px solid rgba(143, 168, 138, 0.25);
+}
+.about-card img { position: relative; z-index: 1; }
+.about-badges {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 1.1rem;
+}
+.about-chip {
+  padding: 0.3rem 0.8rem;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(143, 168, 138, 0.4);
+  border-radius: 999px;
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-teal);
+}
+
+/* --- Soft botanical glow utility for bands --- */
+.band-glow { position: relative; overflow: hidden; }
+.band-glow::after {
+  content: '';
+  position: absolute;
+  width: 360px; height: 360px;
+  right: -120px; top: -120px;
+  background: radial-gradient(circle, rgba(212,132,138,0.10), transparent 70%);
+  pointer-events: none;
+}
